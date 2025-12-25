@@ -161,50 +161,96 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 gradient-hero text-primary-foreground overflow-hidden relative">
+      <section className="pt-28 pb-24 px-4 gradient-hero text-primary-foreground overflow-hidden relative min-h-[90vh] flex items-center">
+        {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
-          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-primary/30 rounded-full blur-3xl" />
+          <div className="absolute top-20 right-[10%] w-72 h-72 bg-accent/30 rounded-full blur-[100px] animate-pulse-glow" />
+          <div className="absolute bottom-20 left-[5%] w-96 h-96 bg-primary/40 rounded-full blur-[120px] animate-float" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-10">
+            <div className="absolute inset-0 border border-primary-foreground/20 rounded-full animate-[spin_30s_linear_infinite]" />
+            <div className="absolute inset-8 border border-primary-foreground/15 rounded-full animate-[spin_25s_linear_infinite_reverse]" />
+            <div className="absolute inset-16 border border-primary-foreground/10 rounded-full animate-[spin_20s_linear_infinite]" />
+          </div>
+          {/* Floating particles */}
+          <div className="absolute top-1/4 right-1/4 w-2 h-2 bg-accent rounded-full animate-float" style={{ animationDelay: '0s' }} />
+          <div className="absolute top-1/3 left-1/4 w-3 h-3 bg-primary-foreground/30 rounded-full animate-float" style={{ animationDelay: '1s' }} />
+          <div className="absolute bottom-1/3 right-1/3 w-2 h-2 bg-accent/60 rounded-full animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute bottom-1/4 left-1/3 w-4 h-4 bg-primary-foreground/20 rounded-full animate-float" style={{ animationDelay: '0.5s' }} />
         </div>
         
         <div className="container mx-auto relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-foreground/10 backdrop-blur-sm mb-6 animate-fade-in">
-              <Sparkles className="w-4 h-4 text-accent" />
-              <span className="text-sm font-medium">AI-Powered CV Builder</span>
+          <div className="max-w-4xl mx-auto text-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary-foreground/10 backdrop-blur-md border border-primary-foreground/20 mb-8 animate-fade-in shadow-lg">
+              <div className="relative">
+                <Sparkles className="w-5 h-5 text-accent" />
+                <div className="absolute inset-0 text-accent animate-ping opacity-50">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+              </div>
+              <span className="text-sm font-semibold tracking-wide">AI-Powered CV Builder</span>
+              <span className="px-2 py-0.5 bg-accent/20 rounded-full text-xs font-bold text-accent">NEW</span>
             </div>
             
-            <h1 className="font-display text-4xl md:text-6xl font-bold mb-6 leading-tight animate-slide-up">
-              Build Your Dream Career with the{' '}
-              <span className="text-accent">Perfect CV</span>
+            {/* Main headline */}
+            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold mb-8 leading-[1.1] animate-slide-up tracking-tight">
+              Build Your Dream
+              <br />
+              <span className="relative inline-block mt-2">
+                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-accent via-primary-foreground to-accent animate-shimmer">
+                  Career Today
+                </span>
+                <svg className="absolute -bottom-2 left-0 w-full h-4 text-accent/40" viewBox="0 0 200 12" preserveAspectRatio="none">
+                  <path d="M0,8 Q50,0 100,8 T200,8" fill="none" stroke="currentColor" strokeWidth="3" className="animate-wave" />
+                </svg>
+              </span>
             </h1>
             
-            <p className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto animate-slide-up stagger-1">
-              Create stunning, ATS-friendly resumes in minutes. Let AI help you write compelling content tailored to any job description.
+            {/* Subheadline */}
+            <p className="text-xl md:text-2xl text-primary-foreground/80 mb-10 max-w-2xl mx-auto animate-slide-up stagger-1 leading-relaxed font-light">
+              Create stunning, ATS-friendly resumes in minutes. 
+              <span className="text-accent font-medium"> AI-powered</span> content tailored to any job.
             </p>
             
+            {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up stagger-2">
               <Link to="/builder">
-                <Button variant="hero" size="xl" className="w-full sm:w-auto group">
-                  Start Building Free
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                <Button variant="hero" size="xl" className="w-full sm:w-auto group relative overflow-hidden">
+                  <span className="relative z-10 flex items-center gap-2">
+                    Start Building Free
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                 </Button>
               </Link>
               <Link to="/templates">
-                <Button variant="glass" size="xl" className="w-full sm:w-auto">
+                <Button variant="glass" size="xl" className="w-full sm:w-auto backdrop-blur-md border-primary-foreground/30 hover:bg-primary-foreground/20 transition-all duration-300">
                   Browse Templates
                 </Button>
               </Link>
             </div>
 
             {/* Stats */}
-            <div className="flex justify-center gap-8 md:gap-16 mt-16 animate-slide-up stagger-3">
-              {stats.map((stat) => (
-                <div key={stat.label} className="text-center">
-                  <div className="font-display text-3xl md:text-4xl font-bold text-accent">{stat.value}</div>
-                  <div className="text-sm text-primary-foreground/60">{stat.label}</div>
+            <div className="flex justify-center gap-6 md:gap-12 mt-20 animate-slide-up stagger-3">
+              {stats.map((stat, index) => (
+                <div key={stat.label} className="text-center relative group">
+                  <div className="absolute inset-0 bg-primary-foreground/5 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="relative px-6 py-4">
+                    <div className="font-display text-4xl md:text-5xl font-extrabold text-accent drop-shadow-lg">{stat.value}</div>
+                    <div className="text-sm text-primary-foreground/70 mt-1 font-medium">{stat.label}</div>
+                  </div>
+                  {index < stats.length - 1 && (
+                    <div className="hidden md:block absolute top-1/2 -right-6 w-px h-12 -translate-y-1/2 bg-gradient-to-b from-transparent via-primary-foreground/30 to-transparent" />
+                  )}
                 </div>
               ))}
+            </div>
+
+            {/* Scroll indicator */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce hidden md:block">
+              <div className="w-6 h-10 border-2 border-primary-foreground/30 rounded-full flex justify-center pt-2">
+                <div className="w-1.5 h-3 bg-accent rounded-full animate-pulse" />
+              </div>
             </div>
           </div>
         </div>
