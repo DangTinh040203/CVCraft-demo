@@ -161,12 +161,13 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section */}
-      <section className="pt-32 pb-24 px-4 bg-background overflow-hidden relative min-h-[85vh] flex items-center">
+      <section className="pt-32 pb-24 px-4 overflow-hidden relative min-h-[85vh] flex items-center bg-gradient-to-br from-background via-primary/5 to-accent/10">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-20 right-[10%] w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse-glow" />
-          <div className="absolute bottom-20 left-[5%] w-80 h-80 bg-accent/10 rounded-full blur-[100px] animate-float" />
-          <div className="absolute top-1/2 right-[20%] w-64 h-64 bg-primary/5 rounded-full blur-[80px]" />
+          <div className="absolute top-20 right-[10%] w-96 h-96 bg-primary/15 rounded-full blur-[120px] animate-pulse-glow" />
+          <div className="absolute bottom-20 left-[5%] w-80 h-80 bg-accent/15 rounded-full blur-[100px] animate-float" />
+          <div className="absolute top-1/3 left-[15%] w-64 h-64 bg-primary/10 rounded-full blur-[80px]" />
+          <div className="absolute bottom-1/3 right-[15%] w-48 h-48 bg-accent/10 rounded-full blur-[60px] animate-float" style={{ animationDelay: '1s' }} />
         </div>
         
         <div className="container mx-auto relative z-10">
