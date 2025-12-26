@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Briefcase, GraduationCap, Code, Languages, Award, FolderGit2,
   Plus, Trash2, Download, Eye, Sparkles, Settings2, ChevronRight, FileText,
-  X, EyeOff
+  X, EyeOff, ChevronLeft
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,12 @@ import CVPreviewStyled from '@/components/cv/CVPreviewStyled';
 import TemplateSelector from '@/components/cv/TemplateSelector';
 import ColorPaletteSelector, { colorPalettes, ColorPalette } from '@/components/cv/ColorPaletteSelector';
 import AIChat from '@/components/AIChat';
+import MobileFAB from '@/components/cv/MobileFAB';
 import { CVData, sampleCVData } from '@/types/cv';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useSwipe } from '@/hooks/use-swipe';
 
 type Section = 'personal' | 'experience' | 'education' | 'skills' | 'languages' | 'certifications' | 'projects';
 
@@ -47,9 +49,34 @@ const Builder = () => {
   const [showAIChat, setShowAIChat] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('professional-classic');
   const [selectedPalette, setSelectedPalette] = useState('classic');
+  const [customizeSheetOpen, setCustomizeSheetOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const currentPalette = colorPalettes.find(p => p.id === selectedPalette) || colorPalettes[0];
+
+  // Section navigation for swipe
+  const currentSectionIndex = sectionConfig.findIndex(s => s.id === activeSection);
+  
+  const goToNextSection = useCallback(() => {
+    if (currentSectionIndex < sectionConfig.length - 1) {
+      setActiveSection(sectionConfig[currentSectionIndex + 1].id);
+      setShowPreview(false);
+    }
+  }, [currentSectionIndex]);
+
+  const goToPrevSection = useCallback(() => {
+    if (currentSectionIndex > 0) {
+      setActiveSection(sectionConfig[currentSectionIndex - 1].id);
+      setShowPreview(false);
+    }
+  }, [currentSectionIndex]);
+
+  // Swipe handlers for mobile navigation
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: goToNextSection,
+    onSwipeRight: goToPrevSection,
+    minSwipeDistance: 75,
+  });
 
   const updatePersonalInfo = (field: keyof CVData['personalInfo'], value: string) => {
     setCvData(prev => ({
@@ -204,16 +231,16 @@ const Builder = () => {
               </div>
             </div>
             
-            {/* Action buttons - scrollable on mobile */}
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap scrollbar-hide">
-              <Sheet>
+            {/* Action buttons - hidden on mobile (using FAB instead) */}
+            <div className="hidden md:flex gap-2 flex-wrap">
+              <Sheet open={customizeSheetOpen} onOpenChange={setCustomizeSheetOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm" className="gap-2 flex-shrink-0">
                     <Settings2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Customize</span>
+                    <span>Customize</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="w-[85vw] sm:w-[400px] overflow-y-auto" side={isMobile ? "bottom" : "right"}>
+                <SheetContent className="w-[400px] overflow-y-auto" side="right">
                   <SheetHeader>
                     <SheetTitle>Customize Your CV</SheetTitle>
                   </SheetHeader>
@@ -230,34 +257,15 @@ const Builder = () => {
                 </SheetContent>
               </Sheet>
               
-              {/* AI Assistant - Sheet on mobile */}
-              {isMobile ? (
-                <Sheet open={showAIChat} onOpenChange={setShowAIChat}>
-                  <SheetTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className={cn('gap-2 flex-shrink-0', showAIChat && 'bg-primary/10 border-primary')}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span className="hidden sm:inline">AI</span>
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-[80vh] p-0">
-                    <AIChat cvData={cvData} onUpdate={handleAIUpdate} onClose={() => setShowAIChat(false)} />
-                  </SheetContent>
-                </Sheet>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowAIChat(!showAIChat)}
-                  className={cn('gap-2 flex-shrink-0', showAIChat && 'bg-primary/10 border-primary')}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  AI Assistant
-                </Button>
-              )}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowAIChat(!showAIChat)}
+                className={cn('gap-2 flex-shrink-0', showAIChat && 'bg-primary/10 border-primary')}
+              >
+                <Sparkles className="w-4 h-4" />
+                AI Assistant
+              </Button>
               
               <Button 
                 variant="outline" 
@@ -266,15 +274,60 @@ const Builder = () => {
                 className={cn('gap-2 flex-shrink-0', showPreview && 'bg-primary/10 border-primary')}
               >
                 {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                <span className="hidden sm:inline">{showPreview ? 'Edit' : 'Preview'}</span>
+                {showPreview ? 'Edit' : 'Preview'}
               </Button>
               
               <Button variant="gradient" size="sm" onClick={exportPDF} className="gap-2 flex-shrink-0">
                 <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export PDF</span>
+                Export PDF
               </Button>
             </div>
           </motion.div>
+
+          {/* Mobile Swipe Indicator */}
+          {isMobile && !showPreview && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between mb-4 px-2"
+            >
+              <button 
+                onClick={goToPrevSection}
+                disabled={currentSectionIndex === 0}
+                className={cn(
+                  'flex items-center gap-1 text-xs font-medium transition-colors',
+                  currentSectionIndex === 0 ? 'text-muted-foreground/50' : 'text-primary'
+                )}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                {currentSectionIndex > 0 && sectionConfig[currentSectionIndex - 1].label}
+              </button>
+              
+              <div className="flex gap-1.5">
+                {sectionConfig.map((_, idx) => (
+                  <div 
+                    key={idx}
+                    className={cn(
+                      'w-2 h-2 rounded-full transition-colors',
+                      idx === currentSectionIndex ? 'bg-primary' : 'bg-muted'
+                    )}
+                  />
+                ))}
+              </div>
+              
+              <button 
+                onClick={goToNextSection}
+                disabled={currentSectionIndex === sectionConfig.length - 1}
+                className={cn(
+                  'flex items-center gap-1 text-xs font-medium transition-colors',
+                  currentSectionIndex === sectionConfig.length - 1 ? 'text-muted-foreground/50' : 'text-primary'
+                )}
+              >
+                {currentSectionIndex < sectionConfig.length - 1 && sectionConfig[currentSectionIndex + 1].label}
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
             {/* Sidebar Navigation - Horizontal scroll on mobile, vertical on desktop */}
@@ -337,11 +390,14 @@ const Builder = () => {
             </motion.div>
 
             {/* Main Content - Full width on mobile when not previewing */}
-            <div className={cn(
-              'order-2',
-              showPreview ? 'hidden lg:block' : 'col-span-1',
-              'lg:col-span-5'
-            )}>
+            <div 
+              className={cn(
+                'order-2',
+                showPreview ? 'hidden lg:block' : 'col-span-1',
+                'lg:col-span-5'
+              )}
+              {...(isMobile ? swipeHandlers : {})}
+            >
               <AnimatePresence mode="wait">
                 {showPreview ? (
                   <motion.div key="preview" {...fadeInUp}>
@@ -352,7 +408,14 @@ const Builder = () => {
                     />
                   </motion.div>
                 ) : (
-                  <motion.div key="editor" {...fadeInUp} className="space-y-6">
+                  <motion.div 
+                    key={`editor-${activeSection}`} 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-6"
+                  >
                     {/* Personal Info Section */}
                     {activeSection === 'personal' && (
                       <Card className="bg-card/80 backdrop-blur-sm border-border/50">
@@ -750,7 +813,7 @@ const Builder = () => {
         </div>
       </main>
 
-      {/* AI Chat Panel - Desktop only (mobile uses Sheet) */}
+      {/* AI Chat Panel - Desktop only */}
       <AnimatePresence>
         {showAIChat && !isMobile && (
           <motion.div
@@ -763,6 +826,43 @@ const Builder = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile AI Chat Sheet */}
+      <Sheet open={showAIChat && isMobile} onOpenChange={setShowAIChat}>
+        <SheetContent side="bottom" className="h-[80vh] p-0">
+          <AIChat cvData={cvData} onUpdate={handleAIUpdate} onClose={() => setShowAIChat(false)} />
+        </SheetContent>
+      </Sheet>
+
+      {/* Mobile Customize Sheet */}
+      <Sheet open={customizeSheetOpen && isMobile} onOpenChange={setCustomizeSheetOpen}>
+        <SheetContent side="bottom" className="h-[70vh] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Customize Your CV</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6 space-y-6 pb-8">
+            <TemplateSelector 
+              selectedTemplate={selectedTemplate}
+              onSelectTemplate={setSelectedTemplate}
+            />
+            <ColorPaletteSelector 
+              selectedPalette={selectedPalette}
+              onSelectPalette={setSelectedPalette}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Mobile FAB */}
+      {isMobile && (
+        <MobileFAB
+          onExportPDF={exportPDF}
+          onTogglePreview={() => setShowPreview(!showPreview)}
+          onOpenCustomize={() => setCustomizeSheetOpen(true)}
+          onOpenAI={() => setShowAIChat(true)}
+          showPreview={showPreview}
+        />
+      )}
     </div>
   );
 };
