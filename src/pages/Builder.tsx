@@ -389,33 +389,23 @@ const Builder = () => {
               </Card>
             </motion.div>
 
-            {/* Main Content - Full width on mobile when not previewing */}
+            {/* Main Content - Full width on mobile when not previewing, editor only on desktop */}
             <div 
               className={cn(
                 'order-2',
-                showPreview ? 'hidden lg:block' : 'col-span-1',
-                'lg:col-span-5'
+                showPreview ? 'hidden lg:hidden' : 'col-span-1 lg:col-span-5',
               )}
               {...(isMobile ? swipeHandlers : {})}
             >
               <AnimatePresence mode="wait">
-                {showPreview ? (
-                  <motion.div key="preview" {...fadeInUp}>
-                    <CVPreviewStyled 
-                      data={cvData} 
-                      palette={currentPalette}
-                      templateId={selectedTemplate}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    key={`editor-${activeSection}`} 
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-6"
-                  >
+                <motion.div 
+                  key={`editor-${activeSection}`} 
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
                     {/* Personal Info Section */}
                     {activeSection === 'personal' && (
                       <Card className="bg-card/80 backdrop-blur-sm border-border/50">
@@ -777,18 +767,16 @@ const Builder = () => {
                       </Card>
                     )}
                   </motion.div>
-                )}
               </AnimatePresence>
             </div>
 
-            {/* Preview Panel - Visible on mobile when preview mode active */}
+            {/* Preview Panel - Always visible on desktop, full screen on mobile when preview active */}
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className={cn(
                 'order-3',
-                showPreview ? 'col-span-1' : 'hidden lg:block',
-                'lg:col-span-5'
+                showPreview ? 'col-span-1 lg:col-span-10' : 'hidden lg:block lg:col-span-5'
               )}
             >
               <div className="lg:sticky lg:top-24">
