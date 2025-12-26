@@ -140,6 +140,19 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
+      // Mock admin account bypass
+      if (isLogin && formData.email === 'admin@gmail.com' && formData.password === 'admin') {
+        toast.success('Welcome back, Admin!');
+        // Store mock session in localStorage
+        localStorage.setItem('mockUser', JSON.stringify({
+          id: 'mock-admin-id',
+          email: 'admin@gmail.com',
+          full_name: 'Admin User',
+        }));
+        navigate('/');
+        return;
+      }
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
