@@ -1,15 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, type Variants } from 'framer-motion';
 import { 
-  Mic, MicOff, Play, Pause, SkipForward, MessageSquare, Clock, 
+  Mic, MicOff, MessageSquare, Clock, 
   CheckCircle2, Volume2, Sparkles, Brain, Target, Zap, 
-  ArrowRight, RotateCcw, Trophy, Star, TrendingUp, Users
+  ArrowRight, RotateCcw, Trophy, Star, TrendingUp, 
+  Download, Briefcase, Code, Users2, Settings2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import Navbar from '@/components/Navbar';
 import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
 
 interface InterviewQuestion {
   id: string;
@@ -19,45 +24,143 @@ interface InterviewQuestion {
   tips: string[];
 }
 
-const sampleQuestions: InterviewQuestion[] = [
+// Behavioral Questions
+const behavioralQuestions: InterviewQuestion[] = [
   {
-    id: '1',
+    id: 'b1',
     question: 'Tell me about yourself and your professional background.',
     category: 'Introduction',
     difficulty: 'easy',
     tips: ['Keep it under 2 minutes', 'Focus on relevant experience', 'End with why you\'re excited about this role'],
   },
   {
-    id: '2',
+    id: 'b2',
     question: 'What is your greatest professional achievement?',
     category: 'Behavioral',
     difficulty: 'medium',
     tips: ['Use the STAR method', 'Include metrics if possible', 'Show impact on the organization'],
   },
   {
-    id: '3',
+    id: 'b3',
     question: 'Describe a challenging situation at work and how you handled it.',
     category: 'Behavioral',
     difficulty: 'medium',
     tips: ['Be specific about the situation', 'Explain your thought process', 'Highlight the positive outcome'],
   },
   {
-    id: '4',
+    id: 'b4',
     question: 'Where do you see yourself in 5 years?',
     category: 'Career Goals',
     difficulty: 'easy',
     tips: ['Show ambition but be realistic', 'Align with the company\'s growth', 'Demonstrate commitment'],
   },
   {
-    id: '5',
+    id: 'b5',
     question: 'Why should we hire you over other candidates?',
     category: 'Self-Assessment',
     difficulty: 'hard',
     tips: ['Highlight unique skills', 'Reference the job requirements', 'Show enthusiasm for the role'],
   },
+  {
+    id: 'b6',
+    question: 'Tell me about a time you failed and what you learned from it.',
+    category: 'Behavioral',
+    difficulty: 'hard',
+    tips: ['Be honest about the failure', 'Focus on the learning', 'Show growth mindset'],
+  },
+  {
+    id: 'b7',
+    question: 'How do you handle stress and pressure?',
+    category: 'Behavioral',
+    difficulty: 'medium',
+    tips: ['Give specific examples', 'Show coping strategies', 'Demonstrate resilience'],
+  },
+  {
+    id: 'b8',
+    question: 'Describe your leadership style.',
+    category: 'Leadership',
+    difficulty: 'medium',
+    tips: ['Use real examples', 'Show adaptability', 'Highlight team success'],
+  },
+];
+
+// Technical Questions
+const technicalQuestions: InterviewQuestion[] = [
+  {
+    id: 't1',
+    question: 'Explain a complex technical concept you recently worked with.',
+    category: 'Technical',
+    difficulty: 'medium',
+    tips: ['Break it down simply', 'Use analogies', 'Show your understanding'],
+  },
+  {
+    id: 't2',
+    question: 'How do you stay updated with the latest technologies in your field?',
+    category: 'Technical',
+    difficulty: 'easy',
+    tips: ['Mention specific resources', 'Show continuous learning', 'Give examples'],
+  },
+  {
+    id: 't3',
+    question: 'Describe a technical problem you solved and your approach.',
+    category: 'Problem Solving',
+    difficulty: 'hard',
+    tips: ['Use the STAR method', 'Explain your debugging process', 'Show systematic thinking'],
+  },
+  {
+    id: 't4',
+    question: 'How do you ensure code quality in your projects?',
+    category: 'Technical',
+    difficulty: 'medium',
+    tips: ['Mention testing strategies', 'Code reviews', 'Best practices'],
+  },
+  {
+    id: 't5',
+    question: 'Explain your experience with system design and architecture.',
+    category: 'System Design',
+    difficulty: 'hard',
+    tips: ['Start with high-level overview', 'Discuss trade-offs', 'Consider scalability'],
+  },
+  {
+    id: 't6',
+    question: 'How do you handle technical debt in projects?',
+    category: 'Technical',
+    difficulty: 'medium',
+    tips: ['Show prioritization skills', 'Balance features vs refactoring', 'Give examples'],
+  },
+  {
+    id: 't7',
+    question: 'Describe your experience working with APIs and integrations.',
+    category: 'Technical',
+    difficulty: 'medium',
+    tips: ['Mention specific APIs', 'Discuss challenges', 'Show integration experience'],
+  },
+  {
+    id: 't8',
+    question: 'How do you approach debugging a production issue?',
+    category: 'Problem Solving',
+    difficulty: 'hard',
+    tips: ['Show systematic approach', 'Mention monitoring tools', 'Discuss root cause analysis'],
+  },
 ];
 
 type InterviewState = 'setup' | 'in-progress' | 'feedback' | 'complete';
+type InterviewType = 'behavioral' | 'technical';
+
+interface InterviewSettings {
+  jobTitle: string;
+  type: InterviewType;
+  questionCount: number;
+  enableFeedback: boolean;
+}
+
+interface AnswerFeedback {
+  questionId: string;
+  question: string;
+  recordingTime: number;
+  strengths: string;
+  improvements: string;
+}
 
 // Floating Particles Component
 const FloatingParticles = () => (
@@ -160,15 +263,22 @@ const scaleIn: Variants = {
 
 const Interview = () => {
   const [state, setState] = useState<InterviewState>('setup');
+  const [settings, setSettings] = useState<InterviewSettings>({
+    jobTitle: '',
+    type: 'behavioral',
+    questionCount: 5,
+    enableFeedback: true,
+  });
+  const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [feedbacks, setFeedbacks] = useState<AnswerFeedback[]>([]);
   const timerRef = useRef<NodeJS.Timeout>();
 
-  const currentQuestion = sampleQuestions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / sampleQuestions.length) * 100;
+  const currentQuestion = questions[currentQuestionIndex];
+  const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
 
   useEffect(() => {
     if (isRecording && !isPaused) {
@@ -186,6 +296,11 @@ const Interview = () => {
   };
 
   const startInterview = () => {
+    const sourceQuestions = settings.type === 'behavioral' ? behavioralQuestions : technicalQuestions;
+    const shuffled = [...sourceQuestions].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, settings.questionCount);
+    setQuestions(selected);
+    setFeedbacks([]);
     setState('in-progress');
     setCurrentQuestionIndex(0);
   };
@@ -197,16 +312,27 @@ const Interview = () => {
     } else {
       setIsRecording(false);
       setIsPaused(false);
-      setAnswers(prev => ({
-        ...prev,
-        [currentQuestion.id]: `Answer recorded for ${recordingTime} seconds`,
-      }));
-      setState('feedback');
+      
+      // Save feedback for this question
+      const newFeedback: AnswerFeedback = {
+        questionId: currentQuestion.id,
+        question: currentQuestion.question,
+        recordingTime,
+        strengths: 'Clear communication, well-structured response, and confident delivery.',
+        improvements: 'Consider adding more specific metrics and quantifiable achievements.',
+      };
+      setFeedbacks(prev => [...prev, newFeedback]);
+      
+      if (settings.enableFeedback) {
+        setState('feedback');
+      } else {
+        nextQuestion();
+      }
     }
   };
 
   const nextQuestion = () => {
-    if (currentQuestionIndex < sampleQuestions.length - 1) {
+    if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
       setRecordingTime(0);
       setState('in-progress');
@@ -218,9 +344,118 @@ const Interview = () => {
   const restartInterview = () => {
     setState('setup');
     setCurrentQuestionIndex(0);
-    setAnswers({});
+    setFeedbacks([]);
     setRecordingTime(0);
     setIsRecording(false);
+    setQuestions([]);
+  };
+
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPosition = 20;
+    
+    // Title
+    doc.setFontSize(24);
+    doc.setTextColor(99, 102, 241); // Primary color
+    doc.text('Interview Report', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 15;
+    
+    // Job Title & Type
+    doc.setFontSize(14);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Position: ${settings.jobTitle || 'Not specified'}`, 20, yPosition);
+    yPosition += 8;
+    doc.text(`Interview Type: ${settings.type === 'behavioral' ? 'Behavioral' : 'Technical'}`, 20, yPosition);
+    yPosition += 8;
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, yPosition);
+    yPosition += 15;
+    
+    // Divider
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, yPosition, pageWidth - 20, yPosition);
+    yPosition += 15;
+    
+    // Summary
+    doc.setFontSize(16);
+    doc.setTextColor(50, 50, 50);
+    doc.text('Performance Summary', 20, yPosition);
+    yPosition += 10;
+    
+    doc.setFontSize(11);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Questions Completed: ${feedbacks.length}/${questions.length}`, 25, yPosition);
+    yPosition += 7;
+    const totalTime = feedbacks.reduce((acc, f) => acc + f.recordingTime, 0);
+    doc.text(`Total Recording Time: ${formatTime(totalTime)}`, 25, yPosition);
+    yPosition += 15;
+    
+    // Questions & Feedback
+    doc.setFontSize(16);
+    doc.setTextColor(50, 50, 50);
+    doc.text('Questions & Feedback', 20, yPosition);
+    yPosition += 12;
+    
+    feedbacks.forEach((feedback, index) => {
+      // Check if we need a new page
+      if (yPosition > 250) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      // Question number
+      doc.setFontSize(12);
+      doc.setTextColor(99, 102, 241);
+      doc.text(`Question ${index + 1}`, 20, yPosition);
+      yPosition += 7;
+      
+      // Question text
+      doc.setFontSize(11);
+      doc.setTextColor(50, 50, 50);
+      const questionLines = doc.splitTextToSize(feedback.question, pageWidth - 50);
+      doc.text(questionLines, 25, yPosition);
+      yPosition += questionLines.length * 6 + 5;
+      
+      // Recording time
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Recording Time: ${formatTime(feedback.recordingTime)}`, 25, yPosition);
+      yPosition += 8;
+      
+      // Strengths
+      doc.setTextColor(34, 197, 94); // Green
+      doc.text('Strengths:', 25, yPosition);
+      yPosition += 5;
+      doc.setTextColor(80, 80, 80);
+      const strengthLines = doc.splitTextToSize(feedback.strengths, pageWidth - 55);
+      doc.text(strengthLines, 30, yPosition);
+      yPosition += strengthLines.length * 5 + 5;
+      
+      // Improvements
+      doc.setTextColor(245, 158, 11); // Amber
+      doc.text('Areas to Improve:', 25, yPosition);
+      yPosition += 5;
+      doc.setTextColor(80, 80, 80);
+      const improvementLines = doc.splitTextToSize(feedback.improvements, pageWidth - 55);
+      doc.text(improvementLines, 30, yPosition);
+      yPosition += improvementLines.length * 5 + 12;
+    });
+    
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `Generated by AI Mock Interview | Page ${i} of ${pageCount}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+    }
+    
+    doc.save(`interview-report-${settings.jobTitle.replace(/\s+/g, '-').toLowerCase() || 'general'}-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -232,17 +467,7 @@ const Interview = () => {
     }
   };
 
-  const features = [
-    { icon: Brain, label: 'AI-Powered Analysis', desc: 'Get intelligent feedback' },
-    { icon: Target, label: 'Industry Questions', desc: 'Real interview scenarios' },
-    { icon: Zap, label: 'Instant Feedback', desc: 'Improve in real-time' },
-  ];
-
-  const stats = [
-    { value: '10K+', label: 'Interviews Completed' },
-    { value: '95%', label: 'Success Rate' },
-    { value: '50+', label: 'Question Categories' },
-  ];
+  const questionCounts = [3, 5, 7, 10];
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -297,69 +522,123 @@ const Interview = () => {
                   </h1>
                   
                   <p className="text-muted-foreground text-lg md:text-xl mb-8 max-w-2xl mx-auto leading-relaxed">
-                    Practice with AI-powered mock interviews, receive instant feedback, 
-                    and build confidence for your dream job opportunity.
+                    Customize your practice session and get AI-powered feedback to ace your dream job.
                   </p>
                 </motion.div>
 
-                {/* Features Grid */}
-                <motion.div 
-                  variants={staggerContainer}
-                  className="grid md:grid-cols-3 gap-4 mb-12"
-                >
-                  {features.map((feature, index) => (
-                    <motion.div
-                      key={feature.label}
-                      variants={fadeInUp}
-                      whileHover={{ y: -5, scale: 1.02 }}
-                      className="group"
-                    >
-                      <Card className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm hover:border-primary/30 transition-all duration-300">
-                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <CardContent className="pt-6 pb-4 relative">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 mx-auto group-hover:scale-110 transition-transform">
-                            <feature.icon className="w-6 h-6 text-primary" />
-                          </div>
-                          <h3 className="font-semibold mb-1">{feature.label}</h3>
-                          <p className="text-sm text-muted-foreground">{feature.desc}</p>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </motion.div>
-
-                {/* Interview Setup Card */}
+                {/* Setup Form */}
                 <motion.div variants={scaleIn}>
-                  <Card className="max-w-lg mx-auto mb-8 border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+                  <Card className="max-w-xl mx-auto mb-8 border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" />
                     <CardHeader>
                       <CardTitle className="text-xl flex items-center gap-2">
-                        <Target className="w-5 h-5 text-primary" />
-                        Interview Session
+                        <Settings2 className="w-5 h-5 text-primary" />
+                        Interview Setup
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      {[
-                        { label: 'Questions', value: sampleQuestions.length, icon: MessageSquare },
-                        { label: 'Duration', value: '15-20 min', icon: Clock },
-                        { label: 'Focus Areas', value: 'Behavioral & Technical', icon: Brain },
-                      ].map((item, i) => (
-                        <motion.div 
-                          key={item.label}
-                          className="flex justify-between items-center p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + i * 0.1 }}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <item.icon className="w-4 h-4 text-primary" />
-                            </div>
-                            <span className="text-muted-foreground">{item.label}</span>
+                    <CardContent className="space-y-6">
+                      {/* Job Title */}
+                      <div className="space-y-2">
+                        <Label htmlFor="jobTitle" className="text-sm font-medium flex items-center gap-2">
+                          <Briefcase className="w-4 h-4 text-primary" />
+                          Job Title
+                        </Label>
+                        <Input
+                          id="jobTitle"
+                          placeholder="e.g. Software Engineer, Product Manager..."
+                          value={settings.jobTitle}
+                          onChange={(e) => setSettings(prev => ({ ...prev, jobTitle: e.target.value }))}
+                          className="bg-muted/50 border-border/50"
+                        />
+                      </div>
+
+                      {/* Interview Type */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Interview Type</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setSettings(prev => ({ ...prev, type: 'behavioral' }))}
+                            className={cn(
+                              "p-4 rounded-xl border-2 transition-all duration-200 text-left",
+                              settings.type === 'behavioral'
+                                ? "border-primary bg-primary/10"
+                                : "border-border/50 bg-muted/30 hover:border-primary/50"
+                            )}
+                          >
+                            <Users2 className={cn(
+                              "w-6 h-6 mb-2",
+                              settings.type === 'behavioral' ? "text-primary" : "text-muted-foreground"
+                            )} />
+                            <h3 className="font-semibold">Behavioral</h3>
+                            <p className="text-xs text-muted-foreground mt-1">Soft skills & teamwork</p>
+                          </motion.button>
+                          
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => setSettings(prev => ({ ...prev, type: 'technical' }))}
+                            className={cn(
+                              "p-4 rounded-xl border-2 transition-all duration-200 text-left",
+                              settings.type === 'technical'
+                                ? "border-primary bg-primary/10"
+                                : "border-border/50 bg-muted/30 hover:border-primary/50"
+                            )}
+                          >
+                            <Code className={cn(
+                              "w-6 h-6 mb-2",
+                              settings.type === 'technical' ? "text-primary" : "text-muted-foreground"
+                            )} />
+                            <h3 className="font-semibold">Technical</h3>
+                            <p className="text-xs text-muted-foreground mt-1">Skills & problem solving</p>
+                          </motion.button>
+                        </div>
+                      </div>
+
+                      {/* Question Count */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <MessageSquare className="w-4 h-4 text-primary" />
+                          Number of Questions
+                        </Label>
+                        <div className="flex gap-2">
+                          {questionCounts.map((count) => (
+                            <motion.button
+                              key={count}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => setSettings(prev => ({ ...prev, questionCount: count }))}
+                              className={cn(
+                                "flex-1 py-3 rounded-lg border-2 font-semibold transition-all duration-200",
+                                settings.questionCount === count
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border/50 bg-muted/30 text-muted-foreground hover:border-primary/50"
+                              )}
+                            >
+                              {count}
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Feedback Toggle */}
+                      <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Brain className="w-5 h-5 text-primary" />
                           </div>
-                          <span className="font-semibold">{item.value}</span>
-                        </motion.div>
-                      ))}
+                          <div>
+                            <Label htmlFor="feedback" className="font-medium cursor-pointer">AI Feedback</Label>
+                            <p className="text-xs text-muted-foreground">Get feedback after each answer</p>
+                          </div>
+                        </div>
+                        <Switch
+                          id="feedback"
+                          checked={settings.enableFeedback}
+                          onCheckedChange={(checked) => setSettings(prev => ({ ...prev, enableFeedback: checked }))}
+                        />
+                      </div>
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -370,6 +649,7 @@ const Interview = () => {
                     variant="gradient" 
                     size="xl" 
                     onClick={startInterview}
+                    disabled={!settings.jobTitle.trim()}
                     className="group relative overflow-hidden shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300"
                   >
                     <span className="relative z-10 flex items-center gap-2">
@@ -378,29 +658,15 @@ const Interview = () => {
                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </Button>
-                </motion.div>
-
-                {/* Stats */}
-                <motion.div 
-                  variants={staggerContainer}
-                  className="flex justify-center gap-8 md:gap-16 mt-12 pt-8 border-t border-border/30"
-                >
-                  {stats.map((stat, index) => (
-                    <motion.div
-                      key={stat.label}
-                      variants={fadeInUp}
-                      className="text-center"
-                    >
-                      <div className="font-display text-3xl font-bold gradient-text">{stat.value}</div>
-                      <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
-                    </motion.div>
-                  ))}
+                  {!settings.jobTitle.trim() && (
+                    <p className="text-sm text-muted-foreground mt-3">Please enter a job title to continue</p>
+                  )}
                 </motion.div>
               </motion.div>
             )}
 
             {/* In Progress */}
-            {state === 'in-progress' && (
+            {state === 'in-progress' && currentQuestion && (
               <motion.div
                 key="in-progress"
                 initial="hidden"
@@ -419,21 +685,24 @@ const Interview = () => {
                       <div>
                         <span className="text-sm text-muted-foreground">Question</span>
                         <div className="font-display font-bold text-lg">
-                          {currentQuestionIndex + 1} <span className="text-muted-foreground font-normal">/ {sampleQuestions.length}</span>
+                          {currentQuestionIndex + 1} <span className="text-muted-foreground font-normal">/ {questions.length}</span>
                         </div>
                       </div>
                     </div>
-                    <motion.span 
-                      className={cn(
-                        'text-sm px-4 py-2 rounded-full font-medium capitalize border',
-                        getDifficultyColor(currentQuestion.difficulty)
-                      )}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 500 }}
-                    >
-                      {currentQuestion.difficulty}
-                    </motion.span>
+                    <div className="text-right">
+                      <span className="text-xs text-muted-foreground">{settings.jobTitle}</span>
+                      <motion.span 
+                        className={cn(
+                          'ml-2 text-sm px-4 py-2 rounded-full font-medium capitalize border',
+                          getDifficultyColor(currentQuestion.difficulty)
+                        )}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 500 }}
+                      >
+                        {currentQuestion.difficulty}
+                      </motion.span>
+                    </div>
                   </div>
                   <div className="relative">
                     <Progress value={progress} className="h-3 bg-muted/50" />
@@ -565,7 +834,7 @@ const Interview = () => {
             )}
 
             {/* Feedback Screen */}
-            {state === 'feedback' && (
+            {state === 'feedback' && currentQuestion && (
               <motion.div
                 key="feedback"
                 initial="hidden"
@@ -609,7 +878,7 @@ const Interview = () => {
                         <div>
                           <h4 className="font-semibold text-emerald-400 mb-1">Strengths</h4>
                           <p className="text-sm text-muted-foreground leading-relaxed">
-                            Clear communication, well-structured response, and confident delivery. Great use of specific examples.
+                            {feedbacks[feedbacks.length - 1]?.strengths || 'Clear communication, well-structured response, and confident delivery.'}
                           </p>
                         </div>
                       </motion.div>
@@ -626,7 +895,7 @@ const Interview = () => {
                         <div>
                           <h4 className="font-semibold text-amber-400 mb-1">Areas to Improve</h4>
                           <p className="text-sm text-muted-foreground leading-relaxed">
-                            Consider adding more specific metrics and quantifiable achievements to strengthen your response.
+                            {feedbacks[feedbacks.length - 1]?.improvements || 'Consider adding more specific metrics and quantifiable achievements.'}
                           </p>
                         </div>
                       </motion.div>
@@ -656,7 +925,10 @@ const Interview = () => {
                   <Button 
                     variant="outline" 
                     size="lg" 
-                    onClick={() => setState('in-progress')}
+                    onClick={() => {
+                      setFeedbacks(prev => prev.slice(0, -1));
+                      setState('in-progress');
+                    }}
                     className="group"
                   >
                     <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
@@ -668,7 +940,7 @@ const Interview = () => {
                     onClick={nextQuestion}
                     className="group shadow-xl shadow-primary/25"
                   >
-                    {currentQuestionIndex < sampleQuestions.length - 1 ? (
+                    {currentQuestionIndex < questions.length - 1 ? (
                       <>
                         Next Question
                         <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -720,8 +992,7 @@ const Interview = () => {
                     Interview <span className="gradient-text">Complete!</span>
                   </h1>
                   <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">
-                    Congratulations! You've completed all {sampleQuestions.length} questions. 
-                    Keep practicing to build your interview confidence.
+                    Congratulations! You've completed all {questions.length} questions for <strong>{settings.jobTitle}</strong>.
                   </p>
                 </motion.div>
 
@@ -736,10 +1007,10 @@ const Interview = () => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {[
-                        { label: 'Questions Completed', value: `${sampleQuestions.length}/${sampleQuestions.length}`, color: 'text-emerald-400', icon: CheckCircle2 },
-                        { label: 'Overall Confidence', value: 'Excellent', color: 'text-primary', icon: TrendingUp },
-                        { label: 'Communication', value: 'Strong', color: 'text-primary', icon: MessageSquare },
-                        { label: 'Structure', value: 'Well Organized', color: 'text-amber-400', icon: Target },
+                        { label: 'Position', value: settings.jobTitle, color: 'text-primary', icon: Briefcase },
+                        { label: 'Interview Type', value: settings.type === 'behavioral' ? 'Behavioral' : 'Technical', color: 'text-primary', icon: settings.type === 'behavioral' ? Users2 : Code },
+                        { label: 'Questions Completed', value: `${feedbacks.length}/${questions.length}`, color: 'text-emerald-400', icon: CheckCircle2 },
+                        { label: 'Total Time', value: formatTime(feedbacks.reduce((acc, f) => acc + f.recordingTime, 0)), color: 'text-amber-400', icon: Clock },
                       ].map((item, i) => (
                         <motion.div 
                           key={item.label}
@@ -763,7 +1034,7 @@ const Interview = () => {
 
                 <motion.div 
                   variants={fadeInUp}
-                  className="flex justify-center gap-4"
+                  className="flex justify-center gap-4 flex-wrap"
                 >
                   <Button 
                     variant="outline" 
@@ -777,10 +1048,11 @@ const Interview = () => {
                   <Button 
                     variant="gradient" 
                     size="lg"
+                    onClick={downloadPDF}
                     className="shadow-xl shadow-primary/25"
                   >
-                    View Detailed Report
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Report (PDF)
                   </Button>
                 </motion.div>
               </motion.div>
