@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Briefcase, GraduationCap, Code, Languages, Award, FolderGit2,
-  Plus, Trash2, Download, Eye, Sparkles, Settings2, ChevronRight, FileText
+  Plus, Trash2, Download, Eye, Sparkles, Settings2, ChevronRight, FileText,
+  X, EyeOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ import AIChat from '@/components/AIChat';
 import { CVData, sampleCVData } from '@/types/cv';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type Section = 'personal' | 'experience' | 'education' | 'skills' | 'languages' | 'certifications' | 'projects';
 
@@ -45,6 +47,7 @@ const Builder = () => {
   const [showAIChat, setShowAIChat] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('professional-classic');
   const [selectedPalette, setSelectedPalette] = useState('classic');
+  const isMobile = useIsMobile();
 
   const currentPalette = colorPalettes.find(p => p.id === selectedPalette) || colorPalettes[0];
 
@@ -187,32 +190,34 @@ const Builder = () => {
           <motion.div 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6"
+            className="flex flex-col gap-4 mb-6"
           >
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                <FileText className="w-6 h-6 text-primary-foreground" />
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center flex-shrink-0">
+                <FileText className="w-5 h-5 md:w-6 md:h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-display text-2xl md:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                <h1 className="font-display text-xl md:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
                   CV Builder
                 </h1>
-                <p className="text-muted-foreground text-sm">Craft your professional story</p>
+                <p className="text-muted-foreground text-xs md:text-sm">Craft your professional story</p>
               </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
+            
+            {/* Action buttons - scrollable on mobile */}
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 md:flex-wrap scrollbar-hide">
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
+                  <Button variant="outline" size="sm" className="gap-2 flex-shrink-0">
                     <Settings2 className="w-4 h-4" />
-                    Customize
+                    <span className="hidden sm:inline">Customize</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="w-[320px] sm:w-[400px] overflow-y-auto">
+                <SheetContent className="w-[85vw] sm:w-[400px] overflow-y-auto" side={isMobile ? "bottom" : "right"}>
                   <SheetHeader>
                     <SheetTitle>Customize Your CV</SheetTitle>
                   </SheetHeader>
-                  <div className="mt-6 space-y-6">
+                  <div className="mt-6 space-y-6 pb-8">
                     <TemplateSelector 
                       selectedTemplate={selectedTemplate}
                       onSelectTemplate={setSelectedTemplate}
@@ -224,39 +229,83 @@ const Builder = () => {
                   </div>
                 </SheetContent>
               </Sheet>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowAIChat(!showAIChat)}
-                className={cn('gap-2', showAIChat && 'bg-primary/10 border-primary')}
-              >
-                <Sparkles className="w-4 h-4" />
-                AI Assistant
-              </Button>
+              
+              {/* AI Assistant - Sheet on mobile */}
+              {isMobile ? (
+                <Sheet open={showAIChat} onOpenChange={setShowAIChat}>
+                  <SheetTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className={cn('gap-2 flex-shrink-0', showAIChat && 'bg-primary/10 border-primary')}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span className="hidden sm:inline">AI</span>
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[80vh] p-0">
+                    <AIChat cvData={cvData} onUpdate={handleAIUpdate} onClose={() => setShowAIChat(false)} />
+                  </SheetContent>
+                </Sheet>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowAIChat(!showAIChat)}
+                  className={cn('gap-2 flex-shrink-0', showAIChat && 'bg-primary/10 border-primary')}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  AI Assistant
+                </Button>
+              )}
+              
               <Button 
                 variant="outline" 
                 size="sm"
                 onClick={() => setShowPreview(!showPreview)}
-                className="gap-2"
+                className={cn('gap-2 flex-shrink-0', showPreview && 'bg-primary/10 border-primary')}
               >
-                <Eye className="w-4 h-4" />
-                {showPreview ? 'Edit' : 'Preview'}
+                {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                <span className="hidden sm:inline">{showPreview ? 'Edit' : 'Preview'}</span>
               </Button>
-              <Button variant="gradient" size="sm" onClick={exportPDF} className="gap-2">
+              
+              <Button variant="gradient" size="sm" onClick={exportPDF} className="gap-2 flex-shrink-0">
                 <Download className="w-4 h-4" />
-                Export PDF
+                <span className="hidden sm:inline">Export PDF</span>
               </Button>
             </div>
           </motion.div>
 
-          <div className="grid lg:grid-cols-12 gap-6">
-            {/* Sidebar Navigation */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+            {/* Sidebar Navigation - Horizontal scroll on mobile, vertical on desktop */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="lg:col-span-2"
+              className="lg:col-span-2 order-1"
             >
-              <Card className="sticky top-24 bg-card/80 backdrop-blur-sm border-border/50">
+              {/* Mobile: Horizontal scrolling tabs */}
+              <div className="lg:hidden overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
+                <div className="flex gap-2 min-w-max">
+                  {sectionConfig.map((section) => (
+                    <button
+                      key={section.id}
+                      onClick={() => { setActiveSection(section.id); setShowPreview(false); }}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap',
+                        activeSection === section.id
+                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                          : 'bg-card text-muted-foreground border border-border/50'
+                      )}
+                    >
+                      <section.icon className="w-4 h-4" />
+                      {section.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Desktop: Vertical navigation */}
+              <Card className="hidden lg:block sticky top-24 bg-card/80 backdrop-blur-sm border-border/50">
                 <CardContent className="p-2">
                   <nav className="space-y-1">
                     {sectionConfig.map((section, index) => (
@@ -287,8 +336,12 @@ const Builder = () => {
               </Card>
             </motion.div>
 
-            {/* Main Content */}
-            <div className={cn('lg:col-span-5', showAIChat && 'lg:col-span-5')}>
+            {/* Main Content - Full width on mobile when not previewing */}
+            <div className={cn(
+              'order-2',
+              showPreview ? 'hidden lg:block' : 'col-span-1',
+              'lg:col-span-5'
+            )}>
               <AnimatePresence mode="wait">
                 {showPreview ? (
                   <motion.div key="preview" {...fadeInUp}>
@@ -665,16 +718,17 @@ const Builder = () => {
               </AnimatePresence>
             </div>
 
-            {/* Preview Panel */}
+            {/* Preview Panel - Visible on mobile when preview mode active */}
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className={cn(
-                'lg:col-span-5 hidden lg:block',
-                showAIChat && 'lg:col-span-5'
+                'order-3',
+                showPreview ? 'col-span-1' : 'hidden lg:block',
+                'lg:col-span-5'
               )}
             >
-              <div className="sticky top-24">
+              <div className="lg:sticky lg:top-24">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm font-medium text-muted-foreground">Live Preview</span>
                   <div className="flex items-center gap-2">
@@ -696,14 +750,14 @@ const Builder = () => {
         </div>
       </main>
 
-      {/* AI Chat Panel */}
+      {/* AI Chat Panel - Desktop only (mobile uses Sheet) */}
       <AnimatePresence>
-        {showAIChat && (
+        {showAIChat && !isMobile && (
           <motion.div
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 100 }}
-            className="fixed right-4 top-24 bottom-4 w-96 z-50"
+            className="fixed right-4 top-24 bottom-4 w-80 lg:w-96 z-50 hidden md:block"
           >
             <AIChat cvData={cvData} onUpdate={handleAIUpdate} onClose={() => setShowAIChat(false)} />
           </motion.div>

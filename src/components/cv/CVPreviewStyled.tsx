@@ -28,7 +28,7 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
         color: palette.text,
       }}
     >
-      <div className="p-6 md:p-8 space-y-5 max-h-[calc(100vh-12rem)] overflow-y-auto">
+      <div className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 max-h-[calc(100vh-10rem)] lg:max-h-[calc(100vh-12rem)] overflow-y-auto">
         {/* Header */}
         <header 
           className={`pb-5 ${isCreative ? 'text-left' : 'text-center'}`}
@@ -36,26 +36,26 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
         >
           {isCreative && (
             <div 
-              className="w-16 h-16 rounded-full mb-4 flex items-center justify-center text-2xl font-bold"
+              className="w-12 h-12 sm:w-16 sm:h-16 rounded-full mb-3 sm:mb-4 flex items-center justify-center text-xl sm:text-2xl font-bold"
               style={{ backgroundColor: palette.primary, color: '#fff' }}
             >
               {data.personalInfo.fullName?.charAt(0) || 'U'}
             </div>
           )}
           <h1 
-            className={`font-bold mb-1 ${isModern ? 'text-3xl tracking-tight' : isMinimal ? 'text-2xl font-light' : 'text-2xl md:text-3xl'}`}
+            className={`font-bold mb-1 ${isModern ? 'text-2xl sm:text-3xl tracking-tight' : isMinimal ? 'text-xl sm:text-2xl font-light' : 'text-xl sm:text-2xl md:text-3xl'}`}
             style={{ color: palette.text }}
           >
             {data.personalInfo.fullName || 'Your Name'}
           </h1>
           <p 
-            className={`font-medium mb-4 ${isMinimal ? 'text-base' : 'text-lg'}`}
+            className={`font-medium mb-3 sm:mb-4 ${isMinimal ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}
             style={{ color: palette.primary }}
           >
             {data.personalInfo.title || 'Your Title'}
           </p>
           
-          <div className={`flex flex-wrap gap-4 text-sm ${isCreative ? 'justify-start' : 'justify-center'}`} style={{ color: `${palette.text}99` }}>
+          <div className={`flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm ${isCreative ? 'justify-start' : 'justify-center'}`} style={{ color: `${palette.text}99` }}>
             {data.personalInfo.email && (
               <a 
                 href={`mailto:${data.personalInfo.email}`} 
@@ -120,13 +120,13 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
             >
               Experience
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {data.experience.map((exp) => (
-                <div key={exp.id} className={isCreative ? 'pl-4' : ''} style={{ borderLeft: isCreative ? `3px solid ${palette.primary}` : 'none' }}>
-                  <div className="flex justify-between items-start mb-1">
+                <div key={exp.id} className={isCreative ? 'pl-3 sm:pl-4' : ''} style={{ borderLeft: isCreative ? `3px solid ${palette.primary}` : 'none' }}>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 mb-1">
                     <div>
-                      <h3 className="font-semibold" style={{ color: palette.text }}>{exp.position}</h3>
-                      <p className="text-sm" style={{ color: palette.primary }}>{exp.company}</p>
+                      <h3 className="font-semibold text-sm sm:text-base" style={{ color: palette.text }}>{exp.position}</h3>
+                      <p className="text-xs sm:text-sm" style={{ color: palette.primary }}>{exp.company}</p>
                     </div>
                     <span className="text-xs whitespace-nowrap" style={{ color: `${palette.text}80` }}>
                       {formatDate(exp.startDate)} - {exp.current ? 'Present' : formatDate(exp.endDate)}
@@ -160,13 +160,13 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
             >
               Education
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {data.education.map((edu) => (
                 <div key={edu.id}>
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
                     <div>
-                      <h3 className="font-semibold" style={{ color: palette.text }}>{edu.degree} in {edu.field}</h3>
-                      <p className="text-sm" style={{ color: palette.primary }}>{edu.institution}</p>
+                      <h3 className="font-semibold text-sm sm:text-base" style={{ color: palette.text }}>{edu.degree} in {edu.field}</h3>
+                      <p className="text-xs sm:text-sm" style={{ color: palette.primary }}>{edu.institution}</p>
                     </div>
                     <span className="text-xs" style={{ color: `${palette.text}80` }}>
                       {formatDate(edu.endDate)}
