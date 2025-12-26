@@ -1,9 +1,10 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, Sparkles, MessageSquare, Menu, X, LogOut, User } from 'lucide-react';
+import { FileText, Sparkles, MessageSquare, Menu, X, LogOut, User, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,11 +12,47 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { supabase } from '@/integrations/supabase/client';
+
+interface MockUser {
+  id: string;
+  email: string;
+  full_name: string;
+}
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [mockUser, setMockUser] = useState<MockUser | null>(null);
+  const [profileData, setProfileData] = useState<{ avatar_url?: string; full_name?: string } | null>(null);
   const location = useLocation();
   const { user, signOut, isLoading } = useAuth();
+
+  // Check for mock user in localStorage
+  useEffect(() => {
+    const storedMockUser = localStorage.getItem('mockUser');
+    if (storedMockUser) {
+      setMockUser(JSON.parse(storedMockUser));
+    }
+  }, []);
+
+  // Fetch profile data for real users
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('avatar_url, full_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data) setProfileData(data);
+    };
+    fetchProfile();
+  }, [user]);
+
+  const currentUser = user || mockUser;
+  const displayName = profileData?.full_name || user?.user_metadata?.full_name || mockUser?.full_name || currentUser?.email?.split('@')[0] || 'User';
+  const displayEmail = currentUser?.email || '';
+  const avatarUrl = profileData?.avatar_url || '';
 
   const navLinks = [
     { href: '/templates', label: 'Templates', icon: FileText },
@@ -26,7 +63,19 @@ const Navbar = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const handleSignOut = async () => {
+    // Clear mock user if exists
+    localStorage.removeItem('mockUser');
+    setMockUser(null);
     await signOut();
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || 'U';
   };
 
   return (
@@ -65,24 +114,33 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-2">
             {isLoading ? (
               <div className="w-24 h-10 bg-muted animate-pulse rounded-lg" />
-            ) : user ? (
+            ) : currentUser ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2">
-                    <div className="w-6 h-6 rounded-full gradient-bg flex items-center justify-center text-xs font-medium text-primary-foreground">
-                      {user.email?.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="max-w-[120px] truncate">
-                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                  <Button variant="ghost" className="gap-2 px-2">
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={avatarUrl} alt={displayName} />
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                        {getInitials(displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="max-w-[120px] truncate hidden lg:block">
+                      {displayName}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5">
-                    <p className="text-sm font-medium">{user.user_metadata?.full_name || 'User'}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                    <p className="text-sm font-medium">{displayName}</p>
+                    <p className="text-xs text-muted-foreground truncate">{displayEmail}</p>
                   </div>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <User className="w-4 h-4 mr-2" />
+                      Profile Settings
+                    </Link>
+                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/builder" className="cursor-pointer">
                       <Sparkles className="w-4 h-4 mr-2" />
@@ -137,12 +195,26 @@ const Navbar = () => {
                   </Button>
                 </Link>
               ))}
-              {user ? (
+              {currentUser ? (
                 <>
-                  <div className="px-3 py-2 border-t border-border mt-2">
-                    <p className="text-sm font-medium">{user.user_metadata?.full_name || 'User'}</p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  <div className="flex items-center gap-3 px-3 py-2 border-t border-border mt-2">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={avatarUrl} alt={displayName} />
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {getInitials(displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{displayName}</p>
+                      <p className="text-xs text-muted-foreground">{displayEmail}</p>
+                    </div>
                   </div>
+                  <Link to="/profile" onClick={() => setIsOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <User className="w-4 h-4" />
+                      Profile Settings
+                    </Button>
+                  </Link>
                   <Button
                     variant="ghost"
                     className="w-full justify-start gap-2 text-destructive"
