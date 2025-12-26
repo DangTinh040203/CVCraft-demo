@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, X, Download, Settings2, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { triggerHaptic } from '@/hooks/use-swipe';
 
 interface MobileFABProps {
   onExportPDF: () => void;
@@ -24,25 +25,25 @@ const MobileFAB = ({
     { 
       icon: Download, 
       label: 'Export PDF', 
-      onClick: () => { onExportPDF(); setIsOpen(false); },
+      onClick: () => { triggerHaptic(10); onExportPDF(); setIsOpen(false); },
       color: 'bg-green-500 hover:bg-green-600'
     },
     { 
       icon: showPreview ? EyeOff : Eye, 
       label: showPreview ? 'Edit Mode' : 'Preview', 
-      onClick: () => { onTogglePreview(); setIsOpen(false); },
+      onClick: () => { triggerHaptic(10); onTogglePreview(); setIsOpen(false); },
       color: 'bg-blue-500 hover:bg-blue-600'
     },
     { 
       icon: Settings2, 
       label: 'Customize', 
-      onClick: () => { onOpenCustomize(); setIsOpen(false); },
+      onClick: () => { triggerHaptic(10); onOpenCustomize(); setIsOpen(false); },
       color: 'bg-purple-500 hover:bg-purple-600'
     },
     { 
       icon: Sparkles, 
       label: 'AI Assistant', 
-      onClick: () => { onOpenAI(); setIsOpen(false); },
+      onClick: () => { triggerHaptic(10); onOpenAI(); setIsOpen(false); },
       color: 'bg-amber-500 hover:bg-amber-600'
     },
   ];
@@ -88,7 +89,10 @@ const MobileFAB = ({
       {/* Main FAB button */}
       <motion.button
         whileTap={{ scale: 0.9 }}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          triggerHaptic(15);
+          setIsOpen(!isOpen);
+        }}
         className={cn(
           'w-14 h-14 rounded-full flex items-center justify-center shadow-xl transition-all duration-300',
           isOpen 

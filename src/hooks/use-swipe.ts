@@ -4,9 +4,22 @@ interface SwipeConfig {
   onSwipeLeft?: () => void;
   onSwipeRight?: () => void;
   minSwipeDistance?: number;
+  enableHaptics?: boolean;
 }
 
-export const useSwipe = ({ onSwipeLeft, onSwipeRight, minSwipeDistance = 50 }: SwipeConfig) => {
+// Haptic feedback utility
+const triggerHaptic = (pattern: number | number[] = 10) => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    navigator.vibrate(pattern);
+  }
+};
+
+export const useSwipe = ({ 
+  onSwipeLeft, 
+  onSwipeRight, 
+  minSwipeDistance = 50,
+  enableHaptics = true 
+}: SwipeConfig) => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
@@ -27,9 +40,11 @@ export const useSwipe = ({ onSwipeLeft, onSwipeRight, minSwipeDistance = 50 }: S
     const isRightSwipe = distance < -minSwipeDistance;
     
     if (isLeftSwipe && onSwipeLeft) {
+      if (enableHaptics) triggerHaptic([10, 30, 10]);
       onSwipeLeft();
     }
     if (isRightSwipe && onSwipeRight) {
+      if (enableHaptics) triggerHaptic([10, 30, 10]);
       onSwipeRight();
     }
   };
@@ -40,3 +55,6 @@ export const useSwipe = ({ onSwipeLeft, onSwipeRight, minSwipeDistance = 50 }: S
     onTouchEnd,
   };
 };
+
+// Export haptic utility for use elsewhere
+export { triggerHaptic };
