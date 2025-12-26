@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, X, Upload, Sparkles, Bot, User } from 'lucide-react';
+import { Send, X, Upload, Sparkles, Bot, User, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CVData } from '@/types/cv';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface Message {
   id: string;
@@ -18,6 +24,9 @@ interface AIChatProps {
   onClose: () => void;
 }
 
+type ChatType = 'Agent' | 'Planning';
+type ModelType = 'GPT-4' | 'GPT-4o' | 'Claude 3.5' | 'Gemini Pro';
+
 const AIChat = ({ cvData, onUpdate, onClose }: AIChatProps) => {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -29,7 +38,12 @@ const AIChat = ({ cvData, onUpdate, onClose }: AIChatProps) => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [chatType, setChatType] = useState<ChatType>('Agent');
+  const [model, setModel] = useState<ModelType>('GPT-4');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const chatTypes: ChatType[] = ['Agent', 'Planning'];
+  const models: ModelType[] = ['GPT-4', 'GPT-4o', 'Claude 3.5', 'Gemini Pro'];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,7 +118,7 @@ const AIChat = ({ cvData, onUpdate, onClose }: AIChatProps) => {
             <p className="text-xs text-muted-foreground">Powered by AI</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="lg:hidden">
+        <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="w-5 h-5" />
         </Button>
       </div>
@@ -158,7 +172,7 @@ const AIChat = ({ cvData, onUpdate, onClose }: AIChatProps) => {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-3">
         <div className="flex gap-2">
           <Button variant="outline" size="icon" title="Upload Job Description">
             <Upload className="w-4 h-4" />
@@ -183,7 +197,53 @@ const AIChat = ({ cvData, onUpdate, onClose }: AIChatProps) => {
             </Button>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
+        
+        {/* Type and Model Selectors */}
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex-1 justify-between">
+                <span className="text-xs text-muted-foreground mr-1">Type:</span>
+                {chatType}
+                <ChevronDown className="w-3 h-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="bg-popover z-50">
+              {chatTypes.map((type) => (
+                <DropdownMenuItem 
+                  key={type} 
+                  onClick={() => setChatType(type)}
+                  className={cn(chatType === type && 'bg-accent')}
+                >
+                  {type}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex-1 justify-between">
+                <span className="text-xs text-muted-foreground mr-1">Model:</span>
+                {model}
+                <ChevronDown className="w-3 h-3 ml-1" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-popover z-50">
+              {models.map((m) => (
+                <DropdownMenuItem 
+                  key={m} 
+                  onClick={() => setModel(m)}
+                  className={cn(model === m && 'bg-accent')}
+                >
+                  {m}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        
+        <p className="text-xs text-muted-foreground text-center">
           AI can help generate and refine your CV content
         </p>
       </div>
