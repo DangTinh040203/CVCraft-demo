@@ -1,14 +1,17 @@
+export interface ContactItem {
+  id: string;
+  key: string;
+  value: string;
+}
+
 export interface CVData {
   personalInfo: {
     fullName: string;
-    email: string;
-    phone: string;
-    location: string;
     title: string;
+    subtitle: string;
     summary: string;
-    linkedin?: string;
-    website?: string;
     photo?: string;
+    contactItems: ContactItem[];
   };
   experience: {
     id: string;
@@ -69,11 +72,10 @@ export interface CVTemplate {
 export const defaultCVData: CVData = {
   personalInfo: {
     fullName: '',
-    email: '',
-    phone: '',
-    location: '',
     title: '',
+    subtitle: '',
     summary: '',
+    contactItems: [],
   },
   experience: [],
   education: [],
@@ -86,13 +88,17 @@ export const defaultCVData: CVData = {
 export const sampleCVData: CVData = {
   personalInfo: {
     fullName: 'John Anderson',
-    email: 'john.anderson@email.com',
-    phone: '+1 (555) 123-4567',
-    location: 'San Francisco, CA',
     title: 'Senior Software Engineer',
+    subtitle: 'Building scalable web applications',
     summary: 'Passionate software engineer with 8+ years of experience building scalable web applications. Expert in React, Node.js, and cloud technologies. Led teams of 5-10 engineers delivering products used by millions.',
-    linkedin: 'linkedin.com/in/johnanderson',
-    website: 'johnanderson.dev',
+    photo: '',
+    contactItems: [
+      { id: '1', key: 'Email', value: 'john.anderson@email.com' },
+      { id: '2', key: 'Phone', value: '+1 (555) 123-4567' },
+      { id: '3', key: 'Location', value: 'San Francisco, CA' },
+      { id: '4', key: 'LinkedIn', value: 'linkedin.com/in/johnanderson' },
+      { id: '5', key: 'Website', value: 'johnanderson.dev' },
+    ],
   },
   experience: [
     {

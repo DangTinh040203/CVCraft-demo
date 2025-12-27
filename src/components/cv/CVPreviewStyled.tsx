@@ -1,6 +1,5 @@
 import { CVData } from '@/types/cv';
 import { ColorPalette } from './ColorPaletteSelector';
-import { Mail, Phone, MapPin, Globe, Linkedin } from 'lucide-react';
 
 interface CVPreviewStyledProps {
   data: CVData;
@@ -34,63 +33,59 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
           className={`pb-5 ${isCreative ? 'text-left' : 'text-center'}`}
           style={{ borderBottom: `2px solid ${palette.primary}20` }}
         >
-          {isCreative && (
-            <div 
-              className="w-12 h-12 sm:w-16 sm:h-16 rounded-full mb-3 sm:mb-4 flex items-center justify-center text-xl sm:text-2xl font-bold"
-              style={{ backgroundColor: palette.primary, color: '#fff' }}
-            >
-              {data.personalInfo.fullName?.charAt(0) || 'U'}
-            </div>
-          )}
-          <h1 
-            className={`font-bold mb-1 ${isModern ? 'text-2xl sm:text-3xl tracking-tight' : isMinimal ? 'text-xl sm:text-2xl font-light' : 'text-xl sm:text-2xl md:text-3xl'}`}
-            style={{ color: palette.text }}
-          >
-            {data.personalInfo.fullName || 'Your Name'}
-          </h1>
-          <p 
-            className={`font-medium mb-3 sm:mb-4 ${isMinimal ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}
-            style={{ color: palette.primary }}
-          >
-            {data.personalInfo.title || 'Your Title'}
-          </p>
-          
-          <div className={`flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm ${isCreative ? 'justify-start' : 'justify-center'}`} style={{ color: `${palette.text}99` }}>
-            {data.personalInfo.email && (
-              <a 
-                href={`mailto:${data.personalInfo.email}`} 
-                className="flex items-center gap-1 transition-colors hover:opacity-80"
+          <div className={`flex ${isCreative ? 'flex-row items-start gap-4' : 'flex-col items-center'}`}>
+            {/* Photo */}
+            {data.personalInfo.photo ? (
+              <img 
+                src={data.personalInfo.photo} 
+                alt={data.personalInfo.fullName}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2"
+                style={{ borderColor: palette.primary }}
+              />
+            ) : isCreative && (
+              <div 
+                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold flex-shrink-0"
+                style={{ backgroundColor: palette.primary, color: '#fff' }}
+              >
+                {data.personalInfo.fullName?.charAt(0) || 'U'}
+              </div>
+            )}
+            
+            <div className={isCreative ? '' : 'text-center'}>
+              <h1 
+                className={`font-bold mb-1 ${isModern ? 'text-2xl sm:text-3xl tracking-tight' : isMinimal ? 'text-xl sm:text-2xl font-light' : 'text-xl sm:text-2xl md:text-3xl'}`}
                 style={{ color: palette.text }}
               >
-                <Mail className="w-4 h-4" style={{ color: palette.primary }} />
-                {data.personalInfo.email}
-              </a>
-            )}
-            {data.personalInfo.phone && (
-              <span className="flex items-center gap-1">
-                <Phone className="w-4 h-4" style={{ color: palette.primary }} />
-                {data.personalInfo.phone}
-              </span>
-            )}
-            {data.personalInfo.location && (
-              <span className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" style={{ color: palette.primary }} />
-                {data.personalInfo.location}
-              </span>
-            )}
-            {data.personalInfo.linkedin && (
-              <a href={`https://${data.personalInfo.linkedin}`} className="flex items-center gap-1 hover:opacity-80">
-                <Linkedin className="w-4 h-4" style={{ color: palette.primary }} />
-                LinkedIn
-              </a>
-            )}
-            {data.personalInfo.website && (
-              <a href={`https://${data.personalInfo.website}`} className="flex items-center gap-1 hover:opacity-80">
-                <Globe className="w-4 h-4" style={{ color: palette.primary }} />
-                Portfolio
-              </a>
-            )}
+                {data.personalInfo.fullName || 'Your Name'}
+              </h1>
+              <p 
+                className={`font-medium ${isMinimal ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}
+                style={{ color: palette.primary }}
+              >
+                {data.personalInfo.title || 'Your Title'}
+              </p>
+              {data.personalInfo.subtitle && (
+                <p 
+                  className="text-sm mt-1"
+                  style={{ color: `${palette.text}99` }}
+                >
+                  {data.personalInfo.subtitle}
+                </p>
+              )}
+            </div>
           </div>
+          
+          {/* Contact Items */}
+          {data.personalInfo.contactItems.length > 0 && (
+            <div className={`flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm mt-4 ${isCreative ? 'justify-start' : 'justify-center'}`} style={{ color: `${palette.text}99` }}>
+              {data.personalInfo.contactItems.map((item) => (
+                <span key={item.id} className="flex items-center gap-1">
+                  <span className="font-medium" style={{ color: palette.primary }}>{item.key}:</span>
+                  <span style={{ color: palette.text }}>{item.value}</span>
+                </span>
+              ))}
+            </div>
+          )}
         </header>
 
         {/* Summary */}
