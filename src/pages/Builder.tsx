@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  User, Briefcase, GraduationCap, Code, Languages, Award, FolderGit2,
+  User, Briefcase, GraduationCap, Code, Award, FolderGit2,
   Plus, Trash2, Download, Eye, Sparkles, Settings2, ChevronRight, FileText,
   X, EyeOff, ChevronLeft, ImagePlus
 } from 'lucide-react';
@@ -19,13 +19,14 @@ import ColorPaletteSelector, { colorPalettes, ColorPalette } from '@/components/
 import AIChat from '@/components/AIChat';
 import MobileFAB from '@/components/cv/MobileFAB';
 import SummaryEditor from '@/components/cv/SummaryEditor';
-import { CVData, sampleCVData, ContactItem } from '@/types/cv';
+import { CVData, sampleCVData, ContactItem, SkillItem } from '@/types/cv';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSwipe } from '@/hooks/use-swipe';
+import { toast } from 'sonner';
 
-type Section = 'personal' | 'summary' | 'experience' | 'education' | 'skills' | 'languages' | 'certifications' | 'projects';
+type Section = 'personal' | 'summary' | 'experience' | 'education' | 'skills' | 'certifications' | 'projects';
 
 const sectionConfig = [
   { id: 'personal' as Section, label: 'Personal', icon: User },
@@ -33,7 +34,6 @@ const sectionConfig = [
   { id: 'experience' as Section, label: 'Experience', icon: Briefcase },
   { id: 'education' as Section, label: 'Education', icon: GraduationCap },
   { id: 'skills' as Section, label: 'Skills', icon: Code },
-  { id: 'languages' as Section, label: 'Languages', icon: Languages },
   { id: 'certifications' as Section, label: 'Certifications', icon: Award },
   { id: 'projects' as Section, label: 'Projects', icon: FolderGit2 },
 ];
@@ -52,21 +52,85 @@ const Builder = () => {
   const [selectedTemplate, setSelectedTemplate] = useState('professional-classic');
   const [selectedPalette, setSelectedPalette] = useState('classic');
   const [customizeSheetOpen, setCustomizeSheetOpen] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const isMobile = useIsMobile();
 
   const currentPalette = colorPalettes.find(p => p.id === selectedPalette) || colorPalettes[0];
 
   // Section navigation for swipe
   const currentSectionIndex = sectionConfig.findIndex(s => s.id === activeSection);
-  
+
+  // Validation functions
+  const validateSection = (section: Section): { valid: boolean; errors: string[] } => {
+    const errors: string[] = [];
+
+    switch (section) {
+      case 'personal':
+        if (!cvData.personalInfo.firstName.trim()) {
+          errors.push('First Name is required');
+        }
+        if (!cvData.personalInfo.lastName.trim()) {
+          errors.push('Last Name is required');
+        }
+        break;
+      case 'summary':
+        // Summary is optional
+        break;
+      case 'experience':
+        cvData.experience.forEach((exp, index) => {
+          if (!exp.company.trim()) errors.push(`Experience ${index + 1}: Company is required`);
+          if (!exp.position.trim()) errors.push(`Experience ${index + 1}: Position is required`);
+          if (!exp.startDate) errors.push(`Experience ${index + 1}: Start Date is required`);
+        });
+        break;
+      case 'education':
+        cvData.education.forEach((edu, index) => {
+          if (!edu.institution.trim()) errors.push(`Education ${index + 1}: Institution is required`);
+          if (!edu.position.trim()) errors.push(`Education ${index + 1}: Position/Degree is required`);
+          if (!edu.startDate) errors.push(`Education ${index + 1}: Start Date is required`);
+        });
+        break;
+      case 'skills':
+        cvData.skills.forEach((skill, index) => {
+          if (!skill.key.trim()) errors.push(`Skill ${index + 1}: Category is required`);
+          if (!skill.value.trim()) errors.push(`Skill ${index + 1}: Skills are required`);
+        });
+        break;
+      case 'certifications':
+        cvData.certifications.forEach((cert, index) => {
+          if (!cert.name.trim()) errors.push(`Certification ${index + 1}: Name is required`);
+          if (!cert.issuer.trim()) errors.push(`Certification ${index + 1}: Issuer is required`);
+        });
+        break;
+      case 'projects':
+        cvData.projects.forEach((proj, index) => {
+          if (!proj.title.trim()) errors.push(`Project ${index + 1}: Title is required`);
+        });
+        break;
+    }
+
+    return { valid: errors.length === 0, errors };
+  };
+
   const goToNextSection = useCallback(() => {
+    const validation = validateSection(activeSection);
+    if (!validation.valid) {
+      setValidationErrors(validation.errors);
+      toast.error('Please fix the errors before continuing', {
+        description: validation.errors[0],
+      });
+      return;
+    }
+    setValidationErrors([]);
+    
     if (currentSectionIndex < sectionConfig.length - 1) {
       setActiveSection(sectionConfig[currentSectionIndex + 1].id);
       setShowPreview(false);
     }
-  }, [currentSectionIndex]);
+  }, [currentSectionIndex, activeSection, cvData]);
 
   const goToPrevSection = useCallback(() => {
+    setValidationErrors([]);
     if (currentSectionIndex > 0) {
       setActiveSection(sectionConfig[currentSectionIndex - 1].id);
       setShowPreview(false);
@@ -85,6 +149,7 @@ const Builder = () => {
       ...prev,
       personalInfo: { ...prev.personalInfo, [field]: value }
     }));
+    setValidationErrors([]);
   };
 
   const updateSummary = (value: string) => {
@@ -143,6 +208,7 @@ const Builder = () => {
     }));
   };
 
+  // Experience functions
   const addExperience = () => {
     setCvData(prev => ({
       ...prev,
@@ -155,7 +221,7 @@ const Builder = () => {
         endDate: '',
         current: false,
         description: '',
-        highlights: ['']
+        highlights: []
       }]
     }));
   };
@@ -167,6 +233,7 @@ const Builder = () => {
         exp.id === id ? { ...exp, [field]: value } : exp
       )
     }));
+    setValidationErrors([]);
   };
 
   const removeExperience = (id: string) => {
@@ -176,17 +243,19 @@ const Builder = () => {
     }));
   };
 
+  // Education functions (same structure as experience)
   const addEducation = () => {
     setCvData(prev => ({
       ...prev,
       education: [...prev.education, {
         id: Date.now().toString(),
         institution: '',
-        degree: '',
-        field: '',
+        position: '',
         location: '',
         startDate: '',
         endDate: '',
+        current: false,
+        description: '',
         highlights: []
       }]
     }));
@@ -199,12 +268,109 @@ const Builder = () => {
         edu.id === id ? { ...edu, [field]: value } : edu
       )
     }));
+    setValidationErrors([]);
   };
 
   const removeEducation = (id: string) => {
     setCvData(prev => ({
       ...prev,
       education: prev.education.filter(edu => edu.id !== id)
+    }));
+  };
+
+  // Skills functions (key-value like contact items)
+  const addSkill = () => {
+    const newSkill: SkillItem = {
+      id: Date.now().toString(),
+      key: '',
+      value: ''
+    };
+    setCvData(prev => ({
+      ...prev,
+      skills: [...prev.skills, newSkill]
+    }));
+  };
+
+  const updateSkill = (id: string, field: 'key' | 'value', value: string) => {
+    setCvData(prev => ({
+      ...prev,
+      skills: prev.skills.map(skill =>
+        skill.id === id ? { ...skill, [field]: value } : skill
+      )
+    }));
+    setValidationErrors([]);
+  };
+
+  const removeSkill = (id: string) => {
+    setCvData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(skill => skill.id !== id)
+    }));
+  };
+
+  // Certifications functions
+  const addCertification = () => {
+    setCvData(prev => ({
+      ...prev,
+      certifications: [...prev.certifications, {
+        id: Date.now().toString(),
+        name: '',
+        issuer: '',
+        date: '',
+        url: ''
+      }]
+    }));
+  };
+
+  const updateCertification = (id: string, field: string, value: string) => {
+    setCvData(prev => ({
+      ...prev,
+      certifications: prev.certifications.map(cert =>
+        cert.id === id ? { ...cert, [field]: value } : cert
+      )
+    }));
+    setValidationErrors([]);
+  };
+
+  const removeCertification = (id: string) => {
+    setCvData(prev => ({
+      ...prev,
+      certifications: prev.certifications.filter(cert => cert.id !== id)
+    }));
+  };
+
+  // Projects functions
+  const addProject = () => {
+    setCvData(prev => ({
+      ...prev,
+      projects: [...prev.projects, {
+        id: Date.now().toString(),
+        title: '',
+        subTitle: '',
+        description: '',
+        technologies: '',
+        position: '',
+        responsibilities: '',
+        demo: '',
+        source: ''
+      }]
+    }));
+  };
+
+  const updateProject = (id: string, field: string, value: string) => {
+    setCvData(prev => ({
+      ...prev,
+      projects: prev.projects.map(proj =>
+        proj.id === id ? { ...proj, [field]: value } : proj
+      )
+    }));
+    setValidationErrors([]);
+  };
+
+  const removeProject = (id: string) => {
+    setCvData(prev => ({
+      ...prev,
+      projects: prev.projects.filter(proj => proj.id !== id)
     }));
   };
 
@@ -245,7 +411,6 @@ const Builder = () => {
       y += 6;
       doc.setFontSize(9);
       doc.setTextColor(60);
-      // Strip HTML tags for PDF
       const plainSummary = data.summary.replace(/<[^>]*>/g, '');
       const summaryLines = doc.splitTextToSize(plainSummary, 170);
       doc.text(summaryLines, 20, y);
@@ -272,6 +437,32 @@ const Builder = () => {
 
     doc.save(`${fullName || 'CV'}_Resume.pdf`);
   };
+
+  // Navigation buttons component
+  const NavigationButtons = () => (
+    <div className="flex justify-between items-center pt-6 border-t border-border/50 mt-6">
+      <Button
+        variant="outline"
+        onClick={goToPrevSection}
+        disabled={currentSectionIndex === 0}
+        className="gap-2"
+      >
+        <ChevronLeft className="w-4 h-4" />
+        Back
+      </Button>
+      <div className="text-sm text-muted-foreground">
+        Step {currentSectionIndex + 1} of {sectionConfig.length}
+      </div>
+      <Button
+        onClick={goToNextSection}
+        disabled={currentSectionIndex === sectionConfig.length - 1}
+        className="gap-2"
+      >
+        Next
+        <ChevronRight className="w-4 h-4" />
+      </Button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
@@ -543,7 +734,7 @@ const Builder = () => {
                                 value={cvData.personalInfo.firstName}
                                 onChange={(e) => updatePersonalInfo('firstName', e.target.value)}
                                 placeholder="John"
-                                className="bg-background/50"
+                                className={cn("bg-background/50", validationErrors.some(e => e.includes('First Name')) && "border-destructive")}
                                 required
                               />
                             </div>
@@ -556,7 +747,7 @@ const Builder = () => {
                                 value={cvData.personalInfo.lastName}
                                 onChange={(e) => updatePersonalInfo('lastName', e.target.value)}
                                 placeholder="Anderson"
-                                className="bg-background/50"
+                                className={cn("bg-background/50", validationErrors.some(e => e.includes('Last Name')) && "border-destructive")}
                                 required
                               />
                             </div>
@@ -635,6 +826,8 @@ const Builder = () => {
                               </div>
                             )}
                           </div>
+
+                          <NavigationButtons />
                         </CardContent>
                       </Card>
                     )}
@@ -655,6 +848,7 @@ const Builder = () => {
                             value={cvData.summary} 
                             onChange={updateSummary}
                           />
+                          <NavigationButtons />
                         </CardContent>
                       </Card>
                     )}
@@ -692,7 +886,7 @@ const Builder = () => {
                               </div>
                               <div className="grid sm:grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">Company</Label>
+                                  <Label className="text-xs text-muted-foreground">Company <span className="text-destructive">*</span></Label>
                                   <Input
                                     value={exp.company}
                                     onChange={(e) => updateExperience(exp.id, 'company', e.target.value)}
@@ -701,7 +895,7 @@ const Builder = () => {
                                   />
                                 </div>
                                 <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">Position</Label>
+                                  <Label className="text-xs text-muted-foreground">Position <span className="text-destructive">*</span></Label>
                                   <Input
                                     value={exp.position}
                                     onChange={(e) => updateExperience(exp.id, 'position', e.target.value)}
@@ -710,9 +904,18 @@ const Builder = () => {
                                   />
                                 </div>
                               </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Location</Label>
+                                <Input
+                                  value={exp.location}
+                                  onChange={(e) => updateExperience(exp.id, 'location', e.target.value)}
+                                  placeholder="City, Country"
+                                  className="bg-background/50"
+                                />
+                              </div>
                               <div className="grid sm:grid-cols-3 gap-3">
                                 <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">Start Date</Label>
+                                  <Label className="text-xs text-muted-foreground">Start Date <span className="text-destructive">*</span></Label>
                                   <Input
                                     type="month"
                                     value={exp.startDate}
@@ -757,11 +960,12 @@ const Builder = () => {
                               <p className="text-xs mt-1">Click "Add" to get started</p>
                             </div>
                           )}
+                          <NavigationButtons />
                         </CardContent>
                       </Card>
                     )}
 
-                    {/* Education Section */}
+                    {/* Education Section - Same structure as Experience */}
                     {activeSection === 'education' && (
                       <Card className="bg-card/80 backdrop-blur-sm border-border/50">
                         <CardHeader className="flex flex-row items-center justify-between pb-4">
@@ -794,31 +998,40 @@ const Builder = () => {
                               </div>
                               <div className="grid sm:grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">Institution</Label>
+                                  <Label className="text-xs text-muted-foreground">Institution <span className="text-destructive">*</span></Label>
                                   <Input
                                     value={edu.institution}
                                     onChange={(e) => updateEducation(edu.id, 'institution', e.target.value)}
-                                    placeholder="University Name"
+                                    placeholder="University/School Name"
                                     className="bg-background/50"
                                   />
                                 </div>
                                 <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">Degree</Label>
+                                  <Label className="text-xs text-muted-foreground">Position/Degree <span className="text-destructive">*</span></Label>
                                   <Input
-                                    value={edu.degree}
-                                    onChange={(e) => updateEducation(edu.id, 'degree', e.target.value)}
-                                    placeholder="Bachelor of Science"
+                                    value={edu.position}
+                                    onChange={(e) => updateEducation(edu.id, 'position', e.target.value)}
+                                    placeholder="Bachelor of Science - Computer Science"
                                     className="bg-background/50"
                                   />
                                 </div>
                               </div>
-                              <div className="grid sm:grid-cols-2 gap-3">
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Location</Label>
+                                <Input
+                                  value={edu.location}
+                                  onChange={(e) => updateEducation(edu.id, 'location', e.target.value)}
+                                  placeholder="City, Country"
+                                  className="bg-background/50"
+                                />
+                              </div>
+                              <div className="grid sm:grid-cols-3 gap-3">
                                 <div className="space-y-1.5">
-                                  <Label className="text-xs text-muted-foreground">Field of Study</Label>
+                                  <Label className="text-xs text-muted-foreground">Start Date <span className="text-destructive">*</span></Label>
                                   <Input
-                                    value={edu.field}
-                                    onChange={(e) => updateEducation(edu.id, 'field', e.target.value)}
-                                    placeholder="Computer Science"
+                                    type="month"
+                                    value={edu.startDate}
+                                    onChange={(e) => updateEducation(edu.id, 'startDate', e.target.value)}
                                     className="bg-background/50"
                                   />
                                 </div>
@@ -828,9 +1041,27 @@ const Builder = () => {
                                     type="month"
                                     value={edu.endDate}
                                     onChange={(e) => updateEducation(edu.id, 'endDate', e.target.value)}
+                                    disabled={edu.current}
                                     className="bg-background/50"
                                   />
                                 </div>
+                                <div className="flex items-center gap-2 pt-5">
+                                  <Switch
+                                    checked={edu.current}
+                                    onCheckedChange={(checked) => updateEducation(edu.id, 'current', checked)}
+                                  />
+                                  <Label className="text-xs">Current</Label>
+                                </div>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Description</Label>
+                                <Textarea
+                                  value={edu.description}
+                                  onChange={(e) => updateEducation(edu.id, 'description', e.target.value)}
+                                  placeholder="Describe your studies, achievements..."
+                                  rows={3}
+                                  className="bg-background/50 resize-none"
+                                />
                               </div>
                             </motion.div>
                           ))}
@@ -841,47 +1072,67 @@ const Builder = () => {
                               <p className="text-xs mt-1">Click "Add" to get started</p>
                             </div>
                           )}
+                          <NavigationButtons />
                         </CardContent>
                       </Card>
                     )}
 
-                    {/* Skills Section */}
+                    {/* Skills Section - Key-Value like Contact Items */}
                     {activeSection === 'skills' && (
                       <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                        <CardHeader className="pb-4">
+                        <CardHeader className="flex flex-row items-center justify-between pb-4">
                           <CardTitle className="flex items-center gap-2 text-lg">
                             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                               <Code className="w-4 h-4 text-primary" />
                             </div>
                             Skills
                           </CardTitle>
+                          <Button size="sm" onClick={addSkill} className="gap-1">
+                            <Plus className="w-4 h-4" />
+                            Add
+                          </Button>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-center py-12 text-muted-foreground">
-                            <Code className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                            <p className="text-sm">Skills section coming soon</p>
-                            <p className="text-xs mt-1">Use AI Assistant to help populate your skills</p>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {/* Languages Section */}
-                    {activeSection === 'languages' && (
-                      <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                        <CardHeader className="pb-4">
-                          <CardTitle className="flex items-center gap-2 text-lg">
-                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <Languages className="w-4 h-4 text-primary" />
+                        <CardContent className="space-y-4">
+                          {cvData.skills.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground">
+                              <Code className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                              <p className="text-sm">No skills added yet</p>
+                              <p className="text-xs mt-1">Click "Add" to get started</p>
                             </div>
-                            Languages
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-center py-12 text-muted-foreground">
-                            <Languages className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                            <p className="text-sm">Languages section coming soon</p>
-                          </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {cvData.skills.map((skill) => (
+                                <motion.div 
+                                  key={skill.id}
+                                  initial={{ opacity: 0, y: 10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg border border-border/50"
+                                >
+                                  <Input
+                                    value={skill.key}
+                                    onChange={(e) => updateSkill(skill.id, 'key', e.target.value)}
+                                    placeholder="Category (e.g. Frontend)"
+                                    className="bg-background/50 w-1/3"
+                                  />
+                                  <Input
+                                    value={skill.value}
+                                    onChange={(e) => updateSkill(skill.id, 'value', e.target.value)}
+                                    placeholder="Skills (e.g. React, TypeScript, Tailwind)"
+                                    className="bg-background/50 flex-1"
+                                  />
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 flex-shrink-0" 
+                                    onClick={() => removeSkill(skill.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                </motion.div>
+                              ))}
+                            </div>
+                          )}
+                          <NavigationButtons />
                         </CardContent>
                       </Card>
                     )}
@@ -889,19 +1140,84 @@ const Builder = () => {
                     {/* Certifications Section */}
                     {activeSection === 'certifications' && (
                       <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                        <CardHeader className="pb-4">
+                        <CardHeader className="flex flex-row items-center justify-between pb-4">
                           <CardTitle className="flex items-center gap-2 text-lg">
                             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                               <Award className="w-4 h-4 text-primary" />
                             </div>
                             Certifications
                           </CardTitle>
+                          <Button size="sm" onClick={addCertification} className="gap-1">
+                            <Plus className="w-4 h-4" />
+                            Add
+                          </Button>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-center py-12 text-muted-foreground">
-                            <Award className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                            <p className="text-sm">Certifications section coming soon</p>
-                          </div>
+                        <CardContent className="space-y-4">
+                          {cvData.certifications.map((cert, index) => (
+                            <motion.div 
+                              key={cert.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="p-4 bg-muted/30 rounded-xl space-y-4 border border-border/50"
+                            >
+                              <div className="flex justify-between items-start">
+                                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                  Certification {index + 1}
+                                </span>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeCertification(cert.id)}>
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </div>
+                              <div className="grid sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Name <span className="text-destructive">*</span></Label>
+                                  <Input
+                                    value={cert.name}
+                                    onChange={(e) => updateCertification(cert.id, 'name', e.target.value)}
+                                    placeholder="Certification Name"
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Issuer <span className="text-destructive">*</span></Label>
+                                  <Input
+                                    value={cert.issuer}
+                                    onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)}
+                                    placeholder="Issuing Organization"
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Date</Label>
+                                  <Input
+                                    type="month"
+                                    value={cert.date}
+                                    onChange={(e) => updateCertification(cert.id, 'date', e.target.value)}
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">URL</Label>
+                                  <Input
+                                    value={cert.url || ''}
+                                    onChange={(e) => updateCertification(cert.id, 'url', e.target.value)}
+                                    placeholder="https://..."
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                          {cvData.certifications.length === 0 && (
+                            <div className="text-center py-12 text-muted-foreground">
+                              <Award className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                              <p className="text-sm">No certifications added yet</p>
+                              <p className="text-xs mt-1">Click "Add" to get started</p>
+                            </div>
+                          )}
+                          <NavigationButtons />
                         </CardContent>
                       </Card>
                     )}
@@ -909,19 +1225,121 @@ const Builder = () => {
                     {/* Projects Section */}
                     {activeSection === 'projects' && (
                       <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                        <CardHeader className="pb-4">
+                        <CardHeader className="flex flex-row items-center justify-between pb-4">
                           <CardTitle className="flex items-center gap-2 text-lg">
                             <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                               <FolderGit2 className="w-4 h-4 text-primary" />
                             </div>
                             Projects
                           </CardTitle>
+                          <Button size="sm" onClick={addProject} className="gap-1">
+                            <Plus className="w-4 h-4" />
+                            Add
+                          </Button>
                         </CardHeader>
-                        <CardContent>
-                          <div className="text-center py-12 text-muted-foreground">
-                            <FolderGit2 className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                            <p className="text-sm">Projects section coming soon</p>
-                          </div>
+                        <CardContent className="space-y-4">
+                          {cvData.projects.map((proj, index) => (
+                            <motion.div 
+                              key={proj.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="p-4 bg-muted/30 rounded-xl space-y-4 border border-border/50"
+                            >
+                              <div className="flex justify-between items-start">
+                                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                  Project {index + 1}
+                                </span>
+                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeProject(proj.id)}>
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              </div>
+                              <div className="grid sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Title <span className="text-destructive">*</span></Label>
+                                  <Input
+                                    value={proj.title}
+                                    onChange={(e) => updateProject(proj.id, 'title', e.target.value)}
+                                    placeholder="Project Title"
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Subtitle</Label>
+                                  <Input
+                                    value={proj.subTitle}
+                                    onChange={(e) => updateProject(proj.id, 'subTitle', e.target.value)}
+                                    placeholder="Brief tagline"
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Technologies</Label>
+                                  <Input
+                                    value={proj.technologies}
+                                    onChange={(e) => updateProject(proj.id, 'technologies', e.target.value)}
+                                    placeholder="React, Node.js, PostgreSQL..."
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Position</Label>
+                                  <Input
+                                    value={proj.position}
+                                    onChange={(e) => updateProject(proj.id, 'position', e.target.value)}
+                                    placeholder="Lead Developer"
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Description</Label>
+                                <SummaryEditor 
+                                  value={proj.description} 
+                                  onChange={(value) => updateProject(proj.id, 'description', value)}
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <Label className="text-xs text-muted-foreground">Responsibilities</Label>
+                                <Textarea
+                                  value={proj.responsibilities}
+                                  onChange={(e) => updateProject(proj.id, 'responsibilities', e.target.value)}
+                                  placeholder="What were your responsibilities in this project?"
+                                  rows={3}
+                                  className="bg-background/50 resize-none"
+                                />
+                              </div>
+                              <div className="grid sm:grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Demo URL</Label>
+                                  <Input
+                                    value={proj.demo || ''}
+                                    onChange={(e) => updateProject(proj.id, 'demo', e.target.value)}
+                                    placeholder="https://demo.example.com"
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label className="text-xs text-muted-foreground">Source Code</Label>
+                                  <Input
+                                    value={proj.source || ''}
+                                    onChange={(e) => updateProject(proj.id, 'source', e.target.value)}
+                                    placeholder="github.com/user/repo"
+                                    className="bg-background/50"
+                                  />
+                                </div>
+                              </div>
+                            </motion.div>
+                          ))}
+                          {cvData.projects.length === 0 && (
+                            <div className="text-center py-12 text-muted-foreground">
+                              <FolderGit2 className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                              <p className="text-sm">No projects added yet</p>
+                              <p className="text-xs mt-1">Click "Add" to get started</p>
+                            </div>
+                          )}
+                          <NavigationButtons />
                         </CardContent>
                       </Card>
                     )}

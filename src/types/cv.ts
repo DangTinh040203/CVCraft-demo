@@ -4,6 +4,12 @@ export interface ContactItem {
   value: string;
 }
 
+export interface SkillItem {
+  id: string;
+  key: string;
+  value: string;
+}
+
 export interface CVData {
   personalInfo: {
     firstName: string;
@@ -28,22 +34,15 @@ export interface CVData {
   education: {
     id: string;
     institution: string;
-    degree: string;
-    field: string;
+    position: string;
     location: string;
     startDate: string;
     endDate: string;
-    gpa?: string;
+    current: boolean;
+    description: string;
     highlights: string[];
   }[];
-  skills: {
-    category: string;
-    items: string[];
-  }[];
-  languages: {
-    name: string;
-    level: string;
-  }[];
+  skills: SkillItem[];
   certifications: {
     id: string;
     name: string;
@@ -53,11 +52,14 @@ export interface CVData {
   }[];
   projects: {
     id: string;
-    name: string;
+    title: string;
+    subTitle: string;
     description: string;
-    technologies: string[];
-    url?: string;
-    highlights: string[];
+    technologies: string;
+    position: string;
+    responsibilities: string;
+    demo?: string;
+    source?: string;
   }[];
 }
 
@@ -82,7 +84,6 @@ export const defaultCVData: CVData = {
   experience: [],
   education: [],
   skills: [],
-  languages: [],
   certifications: [],
   projects: [],
 };
@@ -139,23 +140,19 @@ export const sampleCVData: CVData = {
     {
       id: '1',
       institution: 'University of California, Berkeley',
-      degree: 'Bachelor of Science',
-      field: 'Computer Science',
+      position: 'Bachelor of Science - Computer Science',
       location: 'Berkeley, CA',
       startDate: '2014-09',
       endDate: '2018-05',
-      gpa: '3.8',
+      current: false,
+      description: 'Graduated with honors. Focused on software engineering and machine learning.',
       highlights: ['Dean\'s List 2016-2018', 'CS Club President'],
     },
   ],
   skills: [
-    { category: 'Frontend', items: ['React', 'TypeScript', 'Next.js', 'Tailwind CSS', 'Vue.js'] },
-    { category: 'Backend', items: ['Node.js', 'Python', 'PostgreSQL', 'MongoDB', 'Redis'] },
-    { category: 'DevOps', items: ['AWS', 'Docker', 'Kubernetes', 'CI/CD', 'Terraform'] },
-  ],
-  languages: [
-    { name: 'English', level: 'Native' },
-    { name: 'Spanish', level: 'Professional' },
+    { id: '1', key: 'Frontend', value: 'React, TypeScript, Next.js, Tailwind CSS, Vue.js' },
+    { id: '2', key: 'Backend', value: 'Node.js, Python, PostgreSQL, MongoDB, Redis' },
+    { id: '3', key: 'DevOps', value: 'AWS, Docker, Kubernetes, CI/CD, Terraform' },
   ],
   certifications: [
     { id: '1', name: 'AWS Solutions Architect', issuer: 'Amazon Web Services', date: '2023-03' },
@@ -164,11 +161,14 @@ export const sampleCVData: CVData = {
   projects: [
     {
       id: '1',
-      name: 'Open Source Dashboard',
-      description: 'A customizable analytics dashboard built with React and D3.js',
-      technologies: ['React', 'D3.js', 'TypeScript', 'GraphQL'],
-      url: 'github.com/john/dashboard',
-      highlights: ['2K+ GitHub stars', 'Used by 500+ companies'],
+      title: 'Open Source Dashboard',
+      subTitle: 'Analytics Platform',
+      description: '<p>A customizable analytics dashboard built with React and D3.js for real-time data visualization.</p>',
+      technologies: 'React, D3.js, TypeScript, GraphQL',
+      position: 'Lead Developer',
+      responsibilities: 'Designed the architecture, implemented core features, and managed the open-source community.',
+      demo: 'https://dashboard-demo.com',
+      source: 'github.com/john/dashboard',
     },
   ],
 };
