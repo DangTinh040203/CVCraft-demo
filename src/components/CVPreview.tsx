@@ -1,5 +1,4 @@
 import { CVData } from '@/types/cv';
-import { Mail, Phone, MapPin, Globe, Linkedin } from 'lucide-react';
 
 interface CVPreviewProps {
   data: CVData;
@@ -18,45 +17,36 @@ const CVPreview = ({ data }: CVPreviewProps) => {
       <div className="p-6 md:p-8 space-y-6 max-h-[calc(100vh-8rem)] overflow-y-auto">
         {/* Header */}
         <header className="text-center pb-6 border-b border-border">
+          {data.personalInfo.photo && (
+            <img 
+              src={data.personalInfo.photo} 
+              alt={data.personalInfo.fullName}
+              className="w-20 h-20 rounded-full object-cover mx-auto mb-4 border-2 border-primary"
+            />
+          )}
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">
             {data.personalInfo.fullName || 'Your Name'}
           </h1>
-          <p className="text-lg text-primary font-medium mb-4">
+          <p className="text-lg text-primary font-medium">
             {data.personalInfo.title || 'Your Title'}
           </p>
+          {data.personalInfo.subtitle && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {data.personalInfo.subtitle}
+            </p>
+          )}
           
-          <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-            {data.personalInfo.email && (
-              <a href={`mailto:${data.personalInfo.email}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                <Mail className="w-4 h-4" />
-                {data.personalInfo.email}
-              </a>
-            )}
-            {data.personalInfo.phone && (
-              <span className="flex items-center gap-1">
-                <Phone className="w-4 h-4" />
-                {data.personalInfo.phone}
-              </span>
-            )}
-            {data.personalInfo.location && (
-              <span className="flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                {data.personalInfo.location}
-              </span>
-            )}
-            {data.personalInfo.linkedin && (
-              <a href={`https://${data.personalInfo.linkedin}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                <Linkedin className="w-4 h-4" />
-                LinkedIn
-              </a>
-            )}
-            {data.personalInfo.website && (
-              <a href={`https://${data.personalInfo.website}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                <Globe className="w-4 h-4" />
-                Portfolio
-              </a>
-            )}
-          </div>
+          {/* Contact Items */}
+          {data.personalInfo.contactItems.length > 0 && (
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground mt-4">
+              {data.personalInfo.contactItems.map((item) => (
+                <span key={item.id} className="flex items-center gap-1">
+                  <span className="font-medium text-primary">{item.key}:</span>
+                  <span>{item.value}</span>
+                </span>
+              ))}
+            </div>
+          )}
         </header>
 
         {/* Summary */}

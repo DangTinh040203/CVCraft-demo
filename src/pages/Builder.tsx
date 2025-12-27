@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Briefcase, GraduationCap, Code, Languages, Award, FolderGit2,
   Plus, Trash2, Download, Eye, Sparkles, Settings2, ChevronRight, FileText,
-  X, EyeOff, ChevronLeft
+  X, EyeOff, ChevronLeft, ImagePlus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,7 @@ import TemplateSelector from '@/components/cv/TemplateSelector';
 import ColorPaletteSelector, { colorPalettes, ColorPalette } from '@/components/cv/ColorPaletteSelector';
 import AIChat from '@/components/AIChat';
 import MobileFAB from '@/components/cv/MobileFAB';
-import { CVData, sampleCVData } from '@/types/cv';
+import { CVData, sampleCVData, ContactItem } from '@/types/cv';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -78,10 +78,47 @@ const Builder = () => {
     minSwipeDistance: 75,
   });
 
-  const updatePersonalInfo = (field: keyof CVData['personalInfo'], value: string) => {
+  const updatePersonalInfo = (field: keyof CVData['personalInfo'], value: string | ContactItem[]) => {
     setCvData(prev => ({
       ...prev,
       personalInfo: { ...prev.personalInfo, [field]: value }
+    }));
+  };
+
+  const addContactItem = () => {
+    const newItem: ContactItem = {
+      id: Date.now().toString(),
+      key: '',
+      value: ''
+    };
+    setCvData(prev => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        contactItems: [...prev.personalInfo.contactItems, newItem]
+      }
+    }));
+  };
+
+  const updateContactItem = (id: string, field: 'key' | 'value', value: string) => {
+    setCvData(prev => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        contactItems: prev.personalInfo.contactItems.map(item =>
+          item.id === id ? { ...item, [field]: value } : item
+        )
+      }
+    }));
+  };
+
+  const removeContactItem = (id: string) => {
+    setCvData(prev => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        contactItems: prev.personalInfo.contactItems.filter(item => item.id !== id)
+      }
     }));
   };
 
@@ -170,9 +207,13 @@ const Builder = () => {
     y += 8;
 
     doc.setFontSize(9);
-    const contact = [data.personalInfo.email, data.personalInfo.phone, data.personalInfo.location].filter(Boolean).join(' | ');
-    doc.text(contact, 105, y, { align: 'center' });
-    y += 15;
+    const contact = data.personalInfo.contactItems.map(item => `${item.key}: ${item.value}`).join(' | ');
+    if (contact) {
+      doc.text(contact, 105, y, { align: 'center' });
+      y += 15;
+    } else {
+      y += 5;
+    }
 
     if (data.personalInfo.summary) {
       doc.setFontSize(11);
@@ -417,20 +458,49 @@ const Builder = () => {
                             Personal Information
                           </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                          <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="fullName" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Full Name</Label>
+                        <CardContent className="space-y-6">
+                          {/* Photo Upload */}
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              {cvData.personalInfo.photo ? (
+                                <img 
+                                  src={cvData.personalInfo.photo} 
+                                  alt="Profile" 
+                                  className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                                />
+                              ) : (
+                                <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center border-2 border-dashed border-border">
+                                  <ImagePlus className="w-6 h-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Photo URL (Optional)</Label>
                               <Input
-                                id="fullName"
-                                value={cvData.personalInfo.fullName}
-                                onChange={(e) => updatePersonalInfo('fullName', e.target.value)}
-                                placeholder="John Anderson"
+                                value={cvData.personalInfo.photo || ''}
+                                onChange={(e) => updatePersonalInfo('photo', e.target.value)}
+                                placeholder="https://example.com/photo.jpg"
                                 className="bg-background/50"
                               />
                             </div>
+                          </div>
+
+                          {/* Name */}
+                          <div className="space-y-2">
+                            <Label htmlFor="fullName" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Full Name</Label>
+                            <Input
+                              id="fullName"
+                              value={cvData.personalInfo.fullName}
+                              onChange={(e) => updatePersonalInfo('fullName', e.target.value)}
+                              placeholder="John Anderson"
+                              className="bg-background/50"
+                            />
+                          </div>
+
+                          {/* Title & Subtitle */}
+                          <div className="grid sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor="title" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Job Title</Label>
+                              <Label htmlFor="title" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Title</Label>
                               <Input
                                 id="title"
                                 value={cvData.personalInfo.title}
@@ -439,52 +509,19 @@ const Builder = () => {
                                 className="bg-background/50"
                               />
                             </div>
-                          </div>
-                          <div className="grid sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email</Label>
+                              <Label htmlFor="subtitle" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Subtitle</Label>
                               <Input
-                                id="email"
-                                type="email"
-                                value={cvData.personalInfo.email}
-                                onChange={(e) => updatePersonalInfo('email', e.target.value)}
-                                placeholder="john@example.com"
-                                className="bg-background/50"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="phone" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Phone</Label>
-                              <Input
-                                id="phone"
-                                value={cvData.personalInfo.phone}
-                                onChange={(e) => updatePersonalInfo('phone', e.target.value)}
-                                placeholder="+1 (555) 123-4567"
+                                id="subtitle"
+                                value={cvData.personalInfo.subtitle}
+                                onChange={(e) => updatePersonalInfo('subtitle', e.target.value)}
+                                placeholder="Building scalable web applications"
                                 className="bg-background/50"
                               />
                             </div>
                           </div>
-                          <div className="grid sm:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="location" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Location</Label>
-                              <Input
-                                id="location"
-                                value={cvData.personalInfo.location}
-                                onChange={(e) => updatePersonalInfo('location', e.target.value)}
-                                placeholder="San Francisco, CA"
-                                className="bg-background/50"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="linkedin" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">LinkedIn</Label>
-                              <Input
-                                id="linkedin"
-                                value={cvData.personalInfo.linkedin || ''}
-                                onChange={(e) => updatePersonalInfo('linkedin', e.target.value)}
-                                placeholder="linkedin.com/in/username"
-                                className="bg-background/50"
-                              />
-                            </div>
-                          </div>
+
+                          {/* Summary */}
                           <div className="space-y-2">
                             <Label htmlFor="summary" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Professional Summary</Label>
                             <Textarea
@@ -495,6 +532,56 @@ const Builder = () => {
                               rows={4}
                               className="bg-background/50 resize-none"
                             />
+                          </div>
+
+                          {/* Contact Items - Dynamic Key-Value List */}
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contact Information</Label>
+                              <Button size="sm" variant="outline" onClick={addContactItem} className="gap-1 h-7 text-xs">
+                                <Plus className="w-3 h-3" />
+                                Add Item
+                              </Button>
+                            </div>
+                            
+                            {cvData.personalInfo.contactItems.length === 0 ? (
+                              <div className="text-center py-6 text-muted-foreground border border-dashed border-border rounded-lg">
+                                <p className="text-sm">No contact items added yet</p>
+                                <p className="text-xs mt-1">Click "Add Item" to add email, phone, location, etc.</p>
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {cvData.personalInfo.contactItems.map((item, index) => (
+                                  <motion.div 
+                                    key={item.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg border border-border/50"
+                                  >
+                                    <Input
+                                      value={item.key}
+                                      onChange={(e) => updateContactItem(item.id, 'key', e.target.value)}
+                                      placeholder="Label (e.g. Email)"
+                                      className="bg-background/50 w-1/3"
+                                    />
+                                    <Input
+                                      value={item.value}
+                                      onChange={(e) => updateContactItem(item.id, 'value', e.target.value)}
+                                      placeholder="Value (e.g. john@example.com)"
+                                      className="bg-background/50 flex-1"
+                                    />
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8 flex-shrink-0" 
+                                      onClick={() => removeContactItem(item.id)}
+                                    >
+                                      <Trash2 className="w-4 h-4 text-destructive" />
+                                    </Button>
+                                  </motion.div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </CardContent>
                       </Card>
