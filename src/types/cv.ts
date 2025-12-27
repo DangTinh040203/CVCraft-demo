@@ -6,13 +6,14 @@ export interface ContactItem {
 
 export interface CVData {
   personalInfo: {
-    fullName: string;
+    firstName: string;
+    lastName: string;
     title: string;
     subtitle: string;
-    summary: string;
     photo?: string;
     contactItems: ContactItem[];
   };
+  summary: string;
   experience: {
     id: string;
     company: string;
@@ -71,12 +72,13 @@ export interface CVTemplate {
 
 export const defaultCVData: CVData = {
   personalInfo: {
-    fullName: '',
+    firstName: '',
+    lastName: '',
     title: '',
     subtitle: '',
-    summary: '',
     contactItems: [],
   },
+  summary: '',
   experience: [],
   education: [],
   skills: [],
@@ -87,10 +89,10 @@ export const defaultCVData: CVData = {
 
 export const sampleCVData: CVData = {
   personalInfo: {
-    fullName: 'John Anderson',
+    firstName: 'John',
+    lastName: 'Anderson',
     title: 'Senior Software Engineer',
     subtitle: 'Building scalable web applications',
-    summary: 'Passionate software engineer with 8+ years of experience building scalable web applications. Expert in React, Node.js, and cloud technologies. Led teams of 5-10 engineers delivering products used by millions.',
     photo: '',
     contactItems: [
       { id: '1', key: 'Email', value: 'john.anderson@email.com' },
@@ -100,6 +102,7 @@ export const sampleCVData: CVData = {
       { id: '5', key: 'Website', value: 'johnanderson.dev' },
     ],
   },
+  summary: '<p>Passionate software engineer with 8+ years of experience building scalable web applications. Expert in React, Node.js, and cloud technologies. Led teams of 5-10 engineers delivering products used by millions.</p>',
   experience: [
     {
       id: '1',

@@ -18,16 +18,18 @@ import TemplateSelector from '@/components/cv/TemplateSelector';
 import ColorPaletteSelector, { colorPalettes, ColorPalette } from '@/components/cv/ColorPaletteSelector';
 import AIChat from '@/components/AIChat';
 import MobileFAB from '@/components/cv/MobileFAB';
+import SummaryEditor from '@/components/cv/SummaryEditor';
 import { CVData, sampleCVData, ContactItem } from '@/types/cv';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSwipe } from '@/hooks/use-swipe';
 
-type Section = 'personal' | 'experience' | 'education' | 'skills' | 'languages' | 'certifications' | 'projects';
+type Section = 'personal' | 'summary' | 'experience' | 'education' | 'skills' | 'languages' | 'certifications' | 'projects';
 
 const sectionConfig = [
   { id: 'personal' as Section, label: 'Personal', icon: User },
+  { id: 'summary' as Section, label: 'Summary', icon: FileText },
   { id: 'experience' as Section, label: 'Experience', icon: Briefcase },
   { id: 'education' as Section, label: 'Education', icon: GraduationCap },
   { id: 'skills' as Section, label: 'Skills', icon: Code },
@@ -83,6 +85,25 @@ const Builder = () => {
       ...prev,
       personalInfo: { ...prev.personalInfo, [field]: value }
     }));
+  };
+
+  const updateSummary = (value: string) => {
+    setCvData(prev => ({ ...prev, summary: value }));
+  };
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updatePersonalInfo('photo', reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removePhoto = () => {
+    updatePersonalInfo('photo', '');
   };
 
   const addContactItem = () => {
@@ -196,9 +217,11 @@ const Builder = () => {
     const data = cvData;
     let y = 20;
 
+    const fullName = `${data.personalInfo.firstName} ${data.personalInfo.lastName}`.trim();
+
     doc.setFontSize(22);
     doc.setTextColor(currentPalette.primary);
-    doc.text(data.personalInfo.fullName || 'Your Name', 105, y, { align: 'center' });
+    doc.text(fullName || 'Your Name', 105, y, { align: 'center' });
     y += 10;
 
     doc.setFontSize(12);
@@ -215,14 +238,16 @@ const Builder = () => {
       y += 5;
     }
 
-    if (data.personalInfo.summary) {
+    if (data.summary) {
       doc.setFontSize(11);
       doc.setTextColor(currentPalette.primary);
       doc.text('PROFESSIONAL SUMMARY', 20, y);
       y += 6;
       doc.setFontSize(9);
       doc.setTextColor(60);
-      const summaryLines = doc.splitTextToSize(data.personalInfo.summary, 170);
+      // Strip HTML tags for PDF
+      const plainSummary = data.summary.replace(/<[^>]*>/g, '');
+      const summaryLines = doc.splitTextToSize(plainSummary, 170);
       doc.text(summaryLines, 20, y);
       y += summaryLines.length * 5 + 10;
     }
@@ -245,7 +270,7 @@ const Builder = () => {
       y += 5;
     }
 
-    doc.save(`${data.personalInfo.fullName || 'CV'}_Resume.pdf`);
+    doc.save(`${fullName || 'CV'}_Resume.pdf`);
   };
 
   return (
@@ -463,38 +488,78 @@ const Builder = () => {
                           <div className="flex items-center gap-4">
                             <div className="relative">
                               {cvData.personalInfo.photo ? (
-                                <img 
-                                  src={cvData.personalInfo.photo} 
-                                  alt="Profile" 
-                                  className="w-20 h-20 rounded-full object-cover border-2 border-primary"
-                                />
+                                <>
+                                  <img 
+                                    src={cvData.personalInfo.photo} 
+                                    alt="Profile" 
+                                    className="w-20 h-20 rounded-full object-cover border-2 border-primary"
+                                  />
+                                  <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute -top-1 -right-1 h-6 w-6 rounded-full"
+                                    onClick={removePhoto}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </>
                               ) : (
-                                <div className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center border-2 border-dashed border-border">
+                                <label className="w-20 h-20 rounded-full bg-muted/50 flex items-center justify-center border-2 border-dashed border-border cursor-pointer hover:border-primary hover:bg-muted/80 transition-colors">
                                   <ImagePlus className="w-6 h-6 text-muted-foreground" />
-                                </div>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handlePhotoUpload}
+                                  />
+                                </label>
                               )}
                             </div>
                             <div className="flex-1 space-y-2">
-                              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Photo URL (Optional)</Label>
-                              <Input
-                                value={cvData.personalInfo.photo || ''}
-                                onChange={(e) => updatePersonalInfo('photo', e.target.value)}
-                                placeholder="https://example.com/photo.jpg"
-                                className="bg-background/50"
-                              />
+                              <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Photo (Optional)</Label>
+                              <p className="text-xs text-muted-foreground">Click the circle to upload a photo from your device</p>
+                              {cvData.personalInfo.photo && (
+                                <label className="cursor-pointer">
+                                  <span className="text-xs text-primary hover:underline">Change photo</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handlePhotoUpload}
+                                  />
+                                </label>
+                              )}
                             </div>
                           </div>
 
-                          {/* Name */}
-                          <div className="space-y-2">
-                            <Label htmlFor="fullName" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Full Name</Label>
-                            <Input
-                              id="fullName"
-                              value={cvData.personalInfo.fullName}
-                              onChange={(e) => updatePersonalInfo('fullName', e.target.value)}
-                              placeholder="John Anderson"
-                              className="bg-background/50"
-                            />
+                          {/* First Name & Last Name */}
+                          <div className="grid sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="firstName" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                First Name <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="firstName"
+                                value={cvData.personalInfo.firstName}
+                                onChange={(e) => updatePersonalInfo('firstName', e.target.value)}
+                                placeholder="John"
+                                className="bg-background/50"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="lastName" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                                Last Name <span className="text-destructive">*</span>
+                              </Label>
+                              <Input
+                                id="lastName"
+                                value={cvData.personalInfo.lastName}
+                                onChange={(e) => updatePersonalInfo('lastName', e.target.value)}
+                                placeholder="Anderson"
+                                className="bg-background/50"
+                                required
+                              />
+                            </div>
                           </div>
 
                           {/* Title & Subtitle */}
@@ -519,19 +584,6 @@ const Builder = () => {
                                 className="bg-background/50"
                               />
                             </div>
-                          </div>
-
-                          {/* Summary */}
-                          <div className="space-y-2">
-                            <Label htmlFor="summary" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Professional Summary</Label>
-                            <Textarea
-                              id="summary"
-                              value={cvData.personalInfo.summary}
-                              onChange={(e) => updatePersonalInfo('summary', e.target.value)}
-                              placeholder="Write a brief summary of your professional background..."
-                              rows={4}
-                              className="bg-background/50 resize-none"
-                            />
                           </div>
 
                           {/* Contact Items - Dynamic Key-Value List */}
@@ -583,6 +635,26 @@ const Builder = () => {
                               </div>
                             )}
                           </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {/* Summary Section */}
+                    {activeSection === 'summary' && (
+                      <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+                        <CardHeader className="pb-4">
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <FileText className="w-4 h-4 text-primary" />
+                            </div>
+                            Professional Summary
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <SummaryEditor 
+                            value={cvData.summary} 
+                            onChange={updateSummary}
+                          />
                         </CardContent>
                       </Card>
                     )}
