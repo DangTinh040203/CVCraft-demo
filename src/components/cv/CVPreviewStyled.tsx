@@ -19,6 +19,8 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
   const isCreative = templateId.includes('creative') || templateId.includes('designer');
   const isMinimal = templateId.includes('minimal') || templateId.includes('zen');
 
+  const fullName = `${data.personalInfo.firstName} ${data.personalInfo.lastName}`.trim();
+
   return (
     <div 
       className="rounded-xl shadow-2xl overflow-hidden transition-all duration-300"
@@ -38,7 +40,7 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
             {data.personalInfo.photo ? (
               <img 
                 src={data.personalInfo.photo} 
-                alt={data.personalInfo.fullName}
+                alt={fullName}
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-2"
                 style={{ borderColor: palette.primary }}
               />
@@ -47,7 +49,7 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
                 className="w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold flex-shrink-0"
                 style={{ backgroundColor: palette.primary, color: '#fff' }}
               >
-                {data.personalInfo.fullName?.charAt(0) || 'U'}
+                {data.personalInfo.firstName?.charAt(0) || 'U'}
               </div>
             )}
             
@@ -56,7 +58,7 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
                 className={`font-bold mb-1 ${isModern ? 'text-2xl sm:text-3xl tracking-tight' : isMinimal ? 'text-xl sm:text-2xl font-light' : 'text-xl sm:text-2xl md:text-3xl'}`}
                 style={{ color: palette.text }}
               >
-                {data.personalInfo.fullName || 'Your Name'}
+                {fullName || 'Your Name'}
               </h1>
               <p 
                 className={`font-medium ${isMinimal ? 'text-sm sm:text-base' : 'text-base sm:text-lg'}`}
@@ -89,7 +91,7 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
         </header>
 
         {/* Summary */}
-        {data.personalInfo.summary && (
+        {data.summary && (
           <section>
             <h2 
               className={`font-semibold mb-2 pb-1 ${isMinimal ? 'text-base uppercase tracking-wider' : 'text-lg'}`}
@@ -100,9 +102,11 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
             >
               {isMinimal ? 'About' : 'Professional Summary'}
             </h2>
-            <p className="text-sm leading-relaxed" style={{ color: `${palette.text}cc` }}>
-              {data.personalInfo.summary}
-            </p>
+            <div 
+              className="text-sm leading-relaxed prose prose-sm max-w-none [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4" 
+              style={{ color: `${palette.text}cc` }}
+              dangerouslySetInnerHTML={{ __html: data.summary }}
+            />
           </section>
         )}
 

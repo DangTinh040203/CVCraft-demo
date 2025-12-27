@@ -12,6 +12,8 @@ const CVPreview = ({ data }: CVPreviewProps) => {
     return `${monthNames[parseInt(month) - 1]} ${year}`;
   };
 
+  const fullName = `${data.personalInfo.firstName} ${data.personalInfo.lastName}`.trim();
+
   return (
     <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
       <div className="p-6 md:p-8 space-y-6 max-h-[calc(100vh-8rem)] overflow-y-auto">
@@ -20,12 +22,12 @@ const CVPreview = ({ data }: CVPreviewProps) => {
           {data.personalInfo.photo && (
             <img 
               src={data.personalInfo.photo} 
-              alt={data.personalInfo.fullName}
+              alt={fullName}
               className="w-20 h-20 rounded-full object-cover mx-auto mb-4 border-2 border-primary"
             />
           )}
           <h1 className="font-display text-2xl md:text-3xl font-bold text-foreground mb-1">
-            {data.personalInfo.fullName || 'Your Name'}
+            {fullName || 'Your Name'}
           </h1>
           <p className="text-lg text-primary font-medium">
             {data.personalInfo.title || 'Your Title'}
@@ -50,14 +52,15 @@ const CVPreview = ({ data }: CVPreviewProps) => {
         </header>
 
         {/* Summary */}
-        {data.personalInfo.summary && (
+        {data.summary && (
           <section>
             <h2 className="font-display text-lg font-semibold text-foreground mb-2 pb-1 border-b border-primary/20">
               Professional Summary
             </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {data.personalInfo.summary}
-            </p>
+            <div 
+              className="text-sm text-muted-foreground leading-relaxed prose prose-sm max-w-none [&_p]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4"
+              dangerouslySetInnerHTML={{ __html: data.summary }}
+            />
           </section>
         )}
 
