@@ -388,7 +388,7 @@ const Builder = () => {
     }
 
     setIsExporting(true);
-    toast.info('Generating PDF...', { duration: 2000 });
+    toast.info('Generating PDF...', { duration: 3000 });
 
     try {
       const fullName = `${cvData.personalInfo.firstName} ${cvData.personalInfo.lastName}`.trim();
@@ -1411,7 +1411,9 @@ const Builder = () => {
           top: 0, 
           width: '210mm',
           visibility: 'hidden',
-          pointerEvents: 'none'
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: -9999,
         }}
       >
         <CVPrintable

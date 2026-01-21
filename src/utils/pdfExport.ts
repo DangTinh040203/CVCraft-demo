@@ -18,16 +18,36 @@ export const exportToPDF = async (
   } = options;
 
   try {
-    // Create canvas from the element
-    const canvas = await html2canvas(element, {
+    // Clone the element and append to body temporarily for proper rendering
+    const clone = element.cloneNode(true) as HTMLElement;
+    clone.style.position = 'absolute';
+    clone.style.left = '0';
+    clone.style.top = '0';
+    clone.style.visibility = 'visible';
+    clone.style.opacity = '1';
+    clone.style.zIndex = '99999';
+    clone.style.width = '210mm';
+    clone.style.minHeight = '297mm';
+    clone.style.backgroundColor = window.getComputedStyle(element).backgroundColor || '#ffffff';
+    
+    document.body.appendChild(clone);
+
+    // Wait for fonts and images to load
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Create canvas from the cloned element
+    const canvas = await html2canvas(clone, {
       scale: scale,
       useCORS: true,
       allowTaint: true,
       backgroundColor: null,
       logging: false,
-      windowWidth: element.scrollWidth,
-      windowHeight: element.scrollHeight,
+      width: clone.offsetWidth,
+      height: clone.offsetHeight,
     });
+
+    // Remove the clone
+    document.body.removeChild(clone);
 
     // Calculate dimensions for A4
     const imgWidth = 210; // A4 width in mm
@@ -46,7 +66,6 @@ export const exportToPDF = async (
     // Handle multiple pages if content is longer than one page
     let heightLeft = imgHeight;
     let position = 0;
-    let page = 1;
 
     // Add first page
     pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
@@ -58,7 +77,6 @@ export const exportToPDF = async (
       pdf.addPage();
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-      page++;
     }
 
     // Download the PDF
