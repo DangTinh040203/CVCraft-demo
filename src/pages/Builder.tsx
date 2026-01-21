@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Briefcase, GraduationCap, Code, Award, FolderGit2,
   Plus, Trash2, Download, Eye, Sparkles, Settings2, ChevronRight, FileText,
-  X, EyeOff, ChevronLeft, ImagePlus
+  X, EyeOff, ChevronLeft, ImagePlus, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import Navbar from '@/components/Navbar';
 import CVPreviewStyled from '@/components/cv/CVPreviewStyled';
+import CVPrintable from '@/components/cv/CVPrintable';
 import TemplateSelector from '@/components/cv/TemplateSelector';
 import ColorPaletteSelector, { colorPalettes, ColorPalette } from '@/components/cv/ColorPaletteSelector';
 import AIChat from '@/components/AIChat';
@@ -21,7 +22,7 @@ import MobileFAB from '@/components/cv/MobileFAB';
 import SummaryEditor from '@/components/cv/SummaryEditor';
 import { CVData, sampleCVData, ContactItem, SkillItem } from '@/types/cv';
 import { cn } from '@/lib/utils';
-import jsPDF from 'jspdf';
+import { exportToPDF } from '@/utils/pdfExport';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSwipe } from '@/hooks/use-swipe';
 import { toast } from 'sonner';
@@ -53,6 +54,8 @@ const Builder = () => {
   const [selectedPalette, setSelectedPalette] = useState('classic');
   const [customizeSheetOpen, setCustomizeSheetOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const printableRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
   const currentPalette = colorPalettes.find(p => p.id === selectedPalette) || colorPalettes[0];
@@ -378,64 +381,29 @@ const Builder = () => {
     setCvData(prev => ({ ...prev, ...updatedData }));
   };
 
-  const exportPDF = () => {
-    const doc = new jsPDF();
-    const data = cvData;
-    let y = 20;
-
-    const fullName = `${data.personalInfo.firstName} ${data.personalInfo.lastName}`.trim();
-
-    doc.setFontSize(22);
-    doc.setTextColor(currentPalette.primary);
-    doc.text(fullName || 'Your Name', 105, y, { align: 'center' });
-    y += 10;
-
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(data.personalInfo.title || '', 105, y, { align: 'center' });
-    y += 8;
-
-    doc.setFontSize(9);
-    const contact = data.personalInfo.contactItems.map(item => `${item.key}: ${item.value}`).join(' | ');
-    if (contact) {
-      doc.text(contact, 105, y, { align: 'center' });
-      y += 15;
-    } else {
-      y += 5;
+  const handleExportPDF = async () => {
+    if (!printableRef.current) {
+      toast.error('Unable to generate PDF. Please try again.');
+      return;
     }
 
-    if (data.summary) {
-      doc.setFontSize(11);
-      doc.setTextColor(currentPalette.primary);
-      doc.text('PROFESSIONAL SUMMARY', 20, y);
-      y += 6;
-      doc.setFontSize(9);
-      doc.setTextColor(60);
-      const plainSummary = data.summary.replace(/<[^>]*>/g, '');
-      const summaryLines = doc.splitTextToSize(plainSummary, 170);
-      doc.text(summaryLines, 20, y);
-      y += summaryLines.length * 5 + 10;
-    }
+    setIsExporting(true);
+    toast.info('Generating PDF...', { duration: 2000 });
 
-    if (data.experience.length > 0) {
-      doc.setFontSize(11);
-      doc.setTextColor(currentPalette.primary);
-      doc.text('EXPERIENCE', 20, y);
-      y += 6;
-      data.experience.forEach(exp => {
-        doc.setFontSize(10);
-        doc.setTextColor(40);
-        doc.text(`${exp.position} at ${exp.company}`, 20, y);
-        y += 5;
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text(exp.description, 20, y);
-        y += 8;
+    try {
+      const fullName = `${cvData.personalInfo.firstName} ${cvData.personalInfo.lastName}`.trim();
+      await exportToPDF(printableRef.current, {
+        filename: `${fullName || 'CV'}_Resume.pdf`,
+        scale: 2,
+        quality: 1
       });
-      y += 5;
+      toast.success('PDF downloaded successfully!');
+    } catch (error) {
+      console.error('PDF export error:', error);
+      toast.error('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsExporting(false);
     }
-
-    doc.save(`${fullName || 'CV'}_Resume.pdf`);
   };
 
   // Navigation buttons component
@@ -534,9 +502,15 @@ const Builder = () => {
                 {showPreview ? 'Edit' : 'Preview'}
               </Button>
               
-              <Button variant="gradient" size="sm" onClick={exportPDF} className="gap-2 flex-shrink-0">
-                <Download className="w-4 h-4" />
-                Export PDF
+              <Button 
+                variant="gradient" 
+                size="sm" 
+                onClick={handleExportPDF} 
+                disabled={isExporting}
+                className="gap-2 flex-shrink-0"
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {isExporting ? 'Generating...' : 'Export PDF'}
               </Button>
             </div>
           </motion.div>
@@ -1421,13 +1395,32 @@ const Builder = () => {
       {/* Mobile FAB */}
       {isMobile && (
         <MobileFAB
-          onExportPDF={exportPDF}
+          onExportPDF={handleExportPDF}
           onTogglePreview={() => setShowPreview(!showPreview)}
           onOpenCustomize={() => setCustomizeSheetOpen(true)}
           onOpenAI={() => setShowAIChat(true)}
           showPreview={showPreview}
         />
       )}
+
+      {/* Hidden Printable CV for PDF Export */}
+      <div 
+        style={{ 
+          position: 'fixed', 
+          left: '-9999px', 
+          top: 0, 
+          width: '210mm',
+          visibility: 'hidden',
+          pointerEvents: 'none'
+        }}
+      >
+        <CVPrintable
+          ref={printableRef}
+          data={cvData}
+          palette={currentPalette}
+          templateId={selectedTemplate}
+        />
+      </div>
     </div>
   );
 };
