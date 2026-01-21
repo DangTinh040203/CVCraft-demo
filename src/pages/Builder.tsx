@@ -14,7 +14,6 @@ import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import Navbar from '@/components/Navbar';
 import CVPreviewStyled from '@/components/cv/CVPreviewStyled';
-import CVPrintable from '@/components/cv/CVPrintable';
 import TemplateSelector from '@/components/cv/TemplateSelector';
 import ColorPaletteSelector, { colorPalettes, ColorPalette } from '@/components/cv/ColorPaletteSelector';
 import AIChat from '@/components/AIChat';
@@ -1403,24 +1402,24 @@ const Builder = () => {
         />
       )}
 
-      {/* Hidden Printable CV for PDF Export */}
+      {/* Hidden Printable CV for PDF Export - Uses same component as preview for consistency */}
       <div 
         style={{ 
           position: 'fixed', 
           left: '-9999px', 
           top: 0, 
-          width: '210mm',
           visibility: 'hidden',
           opacity: 0,
           pointerEvents: 'none',
           zIndex: -9999,
         }}
       >
-        <CVPrintable
+        <CVPreviewStyled
           ref={printableRef}
           data={cvData}
           palette={currentPalette}
           templateId={selectedTemplate}
+          forPrint={true}
         />
       </div>
     </div>

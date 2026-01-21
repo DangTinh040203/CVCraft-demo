@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { CVData } from '@/types/cv';
 import { ColorPalette } from './ColorPaletteSelector';
 
@@ -5,9 +6,10 @@ interface CVPreviewStyledProps {
   data: CVData;
   palette: ColorPalette;
   templateId: string;
+  forPrint?: boolean;
 }
 
-const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) => {
+const CVPreviewStyled = forwardRef<HTMLDivElement, CVPreviewStyledProps>(({ data, palette, templateId, forPrint = false }, ref) => {
   const formatDate = (date: string) => {
     if (!date) return '';
     const [year, month] = date.split('-');
@@ -23,8 +25,18 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
 
   return (
     <div 
-      className="rounded-xl shadow-2xl overflow-hidden transition-all duration-300"
-      style={{ backgroundColor: palette.background, color: palette.text }}
+      ref={ref}
+      className={forPrint ? '' : 'rounded-xl shadow-2xl overflow-hidden transition-all duration-300'}
+      style={{ 
+        backgroundColor: palette.background, 
+        color: palette.text,
+        ...(forPrint && { 
+          width: '210mm', 
+          minHeight: '297mm', 
+          padding: '15mm',
+          boxSizing: 'border-box' as const,
+        })
+      }}
     >
       <div className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 max-h-[calc(100vh-10rem)] lg:max-h-[calc(100vh-12rem)] overflow-y-auto">
         {/* Header */}
@@ -169,6 +181,8 @@ const CVPreviewStyled = ({ data, palette, templateId }: CVPreviewStyledProps) =>
       </div>
     </div>
   );
-};
+});
+
+CVPreviewStyled.displayName = 'CVPreviewStyled';
 
 export default CVPreviewStyled;
