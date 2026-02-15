@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CVData } from '@/types/cv';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Loader2, Target, TrendingUp, AlertTriangle, CheckCircle2, XCircle, Lightbulb, Search } from 'lucide-react';
+import { Loader2, Target, TrendingUp, CheckCircle2, XCircle, Lightbulb, Search, Upload, FileText, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -31,12 +32,6 @@ const getScoreColor = (score: number) => {
   return 'text-red-500';
 };
 
-const getScoreBg = (score: number) => {
-  if (score >= 80) return 'bg-green-500';
-  if (score >= 50) return 'bg-yellow-500';
-  return 'bg-red-500';
-};
-
 const getScoreLabel = (score: number) => {
   if (score >= 80) return 'Excellent Match';
   if (score >= 50) return 'Partial Match';
@@ -46,11 +41,86 @@ const getScoreLabel = (score: number) => {
 const CVMatchModal = ({ open, onOpenChange, cvData }: CVMatchModalProps) => {
   const [jobDescription, setJobDescription] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isExtractingFile, setIsExtractingFile] = useState(false);
   const [result, setResult] = useState<MatchResult | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [inputMode, setInputMode] = useState<'text' | 'file'>('text');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+    ];
+
+    if (!allowedTypes.includes(file.type) && !file.name.endsWith('.txt')) {
+      toast.error('Please upload a PDF, Word, or text file.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be under 10MB.');
+      return;
+    }
+
+    setUploadedFile(file);
+    setIsExtractingFile(true);
+
+    try {
+      // For text files, read directly
+      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        const text = await file.text();
+        setJobDescription(text);
+        setIsExtractingFile(false);
+        return;
+      }
+
+      // For PDF/Word, send to edge function to extract text
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-jd-text`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to extract text from file');
+      }
+
+      const data = await response.json();
+      setJobDescription(data.text || '');
+      toast.success('File content extracted successfully!');
+    } catch (err: any) {
+      console.error('File extraction error:', err);
+      toast.error(err.message || 'Failed to read file. Try pasting the text instead.');
+      setUploadedFile(null);
+    } finally {
+      setIsExtractingFile(false);
+    }
+  };
+
+  const removeFile = () => {
+    setUploadedFile(null);
+    setJobDescription('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   const handleAnalyze = async () => {
     if (!jobDescription.trim()) {
-      toast.error('Please paste a job description first.');
+      toast.error('Please provide a job description first.');
       return;
     }
 
@@ -77,6 +147,8 @@ const CVMatchModal = ({ open, onOpenChange, cvData }: CVMatchModalProps) => {
   const handleReset = () => {
     setResult(null);
     setJobDescription('');
+    setUploadedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -88,7 +160,7 @@ const CVMatchModal = ({ open, onOpenChange, cvData }: CVMatchModalProps) => {
             CV-JD Match Analysis
           </DialogTitle>
           <DialogDescription>
-            Paste a job description to see how well your CV matches.
+            Provide a job description to see how well your CV matches.
           </DialogDescription>
         </DialogHeader>
 
@@ -101,16 +173,92 @@ const CVMatchModal = ({ open, onOpenChange, cvData }: CVMatchModalProps) => {
               exit={{ opacity: 0 }}
               className="space-y-4"
             >
-              <Textarea
-                placeholder="Paste the job description here..."
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                className="min-h-[200px] text-sm"
-                disabled={isAnalyzing}
-              />
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as 'text' | 'file')}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="text" className="flex-1 gap-2">
+                    <FileText className="w-4 h-4" />
+                    Paste Text
+                  </TabsTrigger>
+                  <TabsTrigger value="file" className="flex-1 gap-2">
+                    <Upload className="w-4 h-4" />
+                    Upload File
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="text" className="mt-4">
+                  <Textarea
+                    placeholder="Paste the job description here..."
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    className="min-h-[200px] text-sm"
+                    disabled={isAnalyzing}
+                  />
+                </TabsContent>
+
+                <TabsContent value="file" className="mt-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+
+                  {!uploadedFile ? (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isExtractingFile}
+                      className="w-full border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center gap-3 hover:border-primary/50 hover:bg-muted/30 transition-colors cursor-pointer"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Upload className="w-6 h-6 text-primary" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-sm">Click to upload JD file</p>
+                        <p className="text-xs text-muted-foreground mt-1">PDF, Word (.doc, .docx), or Text file • Max 10MB</p>
+                      </div>
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg border">
+                        <FileText className="w-5 h-5 text-primary flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{uploadedFile.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {(uploadedFile.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                        {isExtractingFile ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                        ) : (
+                          <button onClick={removeFile} className="p-1 hover:bg-background rounded">
+                            <X className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+
+                      {isExtractingFile && (
+                        <p className="text-xs text-muted-foreground text-center">Extracting text from file...</p>
+                      )}
+
+                      {jobDescription && !isExtractingFile && (
+                        <div className="space-y-2">
+                          <p className="text-xs text-muted-foreground font-medium">Extracted content preview:</p>
+                          <div className="max-h-[150px] overflow-y-auto p-3 bg-muted/30 rounded-lg border text-xs text-muted-foreground whitespace-pre-wrap">
+                            {jobDescription.slice(0, 1000)}
+                            {jobDescription.length > 1000 && '...'}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
+
               <Button
                 onClick={handleAnalyze}
-                disabled={isAnalyzing || !jobDescription.trim()}
+                disabled={isAnalyzing || isExtractingFile || !jobDescription.trim()}
                 className="w-full gap-2"
                 variant="gradient"
               >
