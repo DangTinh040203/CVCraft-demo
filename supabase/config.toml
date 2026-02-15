@@ -2,3 +2,6 @@ project_id = "xrvsbkdijerobatvasdi"
 
 [functions.cv-match]
 verify_jwt = false
+
+[functions.extract-jd-text]
+verify_jwt = false
