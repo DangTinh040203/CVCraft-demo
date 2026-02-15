@@ -1,1 +1,4 @@
 project_id = "xrvsbkdijerobatvasdi"
+
+[functions.cv-match]
+verify_jwt = false

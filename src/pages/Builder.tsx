@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Briefcase, GraduationCap, Code, Award, FolderGit2,
   Plus, Trash2, Download, Eye, Sparkles, Settings2, ChevronRight, FileText,
-  X, EyeOff, ChevronLeft, ImagePlus, Loader2
+  X, EyeOff, ChevronLeft, ImagePlus, Loader2, Target
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,7 @@ import ColorPaletteSelector, { colorPalettes, ColorPalette } from '@/components/
 import AIChat from '@/components/AIChat';
 import MobileFAB from '@/components/cv/MobileFAB';
 import SummaryEditor from '@/components/cv/SummaryEditor';
+import CVMatchModal from '@/components/cv/CVMatchModal';
 import { CVData, sampleCVData, ContactItem, SkillItem } from '@/types/cv';
 import { cn } from '@/lib/utils';
 import { exportToPDF } from '@/utils/pdfExport';
@@ -54,6 +55,7 @@ const Builder = () => {
   const [customizeSheetOpen, setCustomizeSheetOpen] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState(false);
+  const [showMatchModal, setShowMatchModal] = useState(false);
   const printableRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
@@ -499,6 +501,16 @@ const Builder = () => {
               >
                 {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 {showPreview ? 'Edit' : 'Preview'}
+              </Button>
+
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setShowMatchModal(true)}
+                className="gap-2 flex-shrink-0"
+              >
+                <Target className="w-4 h-4" />
+                Check Match
               </Button>
               
               <Button 
@@ -1398,9 +1410,17 @@ const Builder = () => {
           onTogglePreview={() => setShowPreview(!showPreview)}
           onOpenCustomize={() => setCustomizeSheetOpen(true)}
           onOpenAI={() => setShowAIChat(true)}
+          onCheckMatch={() => setShowMatchModal(true)}
           showPreview={showPreview}
         />
       )}
+
+      {/* CV Match Modal */}
+      <CVMatchModal
+        open={showMatchModal}
+        onOpenChange={setShowMatchModal}
+        cvData={cvData}
+      />
 
       {/* Hidden Printable CV for PDF Export - Uses same component as preview for consistency */}
       <div 
