@@ -280,85 +280,129 @@ const CVMatchModal = ({ open, onOpenChange, cvData }: CVMatchModalProps) => {
               key="result"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-6"
+              className="space-y-5"
             >
-              {/* Overall Score */}
-              <div className="text-center py-4">
-                <div className={cn('text-6xl font-bold', getScoreColor(result.overallScore))}>
-                  {result.overallScore}%
-                </div>
-                <div className={cn('text-sm font-medium mt-1', getScoreColor(result.overallScore))}>
-                  {getScoreLabel(result.overallScore)}
-                </div>
-                <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">{result.summary}</p>
-              </div>
-
-              {/* Category Scores */}
-              <div className="space-y-3">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4" /> Breakdown
-                </h3>
-                {result.categories.map((cat) => (
-                  <div key={cat.name} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>{cat.name} <span className="text-muted-foreground">({cat.weight}%)</span></span>
-                      <span className={cn('font-semibold', getScoreColor(cat.score))}>{cat.score}%</span>
-                    </div>
-                    <Progress value={cat.score} className="h-2" />
-                    <p className="text-xs text-muted-foreground">{cat.details}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Strengths */}
-              {result.strengths.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm flex items-center gap-2 text-green-600">
-                    <CheckCircle2 className="w-4 h-4" /> Strengths
-                  </h3>
-                  <ul className="space-y-1">
-                    {result.strengths.map((s, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-green-500 mt-0.5">•</span> {s}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Missing Keywords */}
-              {result.missingKeywords.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm flex items-center gap-2 text-red-500">
-                    <XCircle className="w-4 h-4" /> Missing Keywords
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {result.missingKeywords.map((kw, i) => (
-                      <span key={i} className="px-2 py-1 bg-red-500/10 text-red-600 rounded-full text-xs font-medium">
-                        {kw}
+              {/* Hero Score Card */}
+              <div className="relative rounded-2xl border bg-gradient-to-br from-background to-secondary/50 p-6 text-center overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.08),transparent_70%)]" />
+                <div className="relative">
+                  {/* Score Ring */}
+                  <div className="mx-auto w-28 h-28 relative mb-3">
+                    <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                      <circle cx="50" cy="50" r="42" fill="none" stroke="hsl(var(--border))" strokeWidth="8" />
+                      <motion.circle
+                        cx="50" cy="50" r="42" fill="none"
+                        stroke={result.overallScore >= 80 ? 'hsl(142 71% 45%)' : result.overallScore >= 50 ? 'hsl(38 92% 50%)' : 'hsl(0 84% 60%)'}
+                        strokeWidth="8" strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 42}`}
+                        initial={{ strokeDashoffset: 2 * Math.PI * 42 }}
+                        animate={{ strokeDashoffset: 2 * Math.PI * 42 * (1 - result.overallScore / 100) }}
+                        transition={{ duration: 1.2, ease: 'easeOut' }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className={cn('text-3xl font-bold tracking-tight', getScoreColor(result.overallScore))}>
+                        {result.overallScore}
                       </span>
-                    ))}
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">/ 100</span>
+                    </div>
                   </div>
+                  <div className={cn('text-sm font-semibold', getScoreColor(result.overallScore))}>
+                    {getScoreLabel(result.overallScore)}
+                  </div>
+                  <p className="text-muted-foreground text-xs mt-2 max-w-sm mx-auto leading-relaxed">{result.summary}</p>
                 </div>
-              )}
+              </div>
 
-              {/* Improvements */}
+              {/* Category Breakdown */}
+              <div className="rounded-xl border bg-card p-4 space-y-3">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-primary" /> Score Breakdown
+                </h3>
+                <div className="space-y-3">
+                  {result.categories.map((cat, idx) => (
+                    <motion.div
+                      key={cat.name}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * idx }}
+                      className="group"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium">{cat.name}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-muted-foreground">wt. {cat.weight}%</span>
+                          <span className={cn('text-xs font-bold tabular-nums', getScoreColor(cat.score))}>{cat.score}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          className={cn('h-full rounded-full', cat.score >= 80 ? 'bg-green-500' : cat.score >= 50 ? 'bg-yellow-500' : 'bg-destructive')}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${cat.score}%` }}
+                          transition={{ duration: 0.8, delay: 0.1 * idx, ease: 'easeOut' }}
+                        />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{cat.details}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Strengths & Missing Keywords - Side by Side on larger screens */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {result.strengths.length > 0 && (
+                  <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 space-y-2">
+                    <h3 className="font-semibold text-xs flex items-center gap-1.5 text-green-600 dark:text-green-400 uppercase tracking-wider">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Strengths
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {result.strengths.map((s, i) => (
+                        <li key={i} className="text-xs text-foreground/80 flex items-start gap-1.5 leading-relaxed">
+                          <span className="text-green-500 mt-0.5 shrink-0">✓</span> {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {result.missingKeywords.length > 0 && (
+                  <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-2">
+                    <h3 className="font-semibold text-xs flex items-center gap-1.5 text-destructive uppercase tracking-wider">
+                      <XCircle className="w-3.5 h-3.5" /> Missing Keywords
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {result.missingKeywords.map((kw, i) => (
+                        <span key={i} className="px-2 py-0.5 bg-destructive/10 text-destructive rounded-md text-[11px] font-medium border border-destructive/15">
+                          {kw}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Improvement Suggestions */}
               {result.improvements.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-sm flex items-center gap-2 text-yellow-600">
-                    <Lightbulb className="w-4 h-4" /> Suggestions
+                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 space-y-2">
+                  <h3 className="font-semibold text-xs flex items-center gap-1.5 text-yellow-600 dark:text-yellow-400 uppercase tracking-wider">
+                    <Lightbulb className="w-3.5 h-3.5" /> Suggestions to Improve
                   </h3>
-                  <ul className="space-y-1">
+                  <ul className="space-y-2">
                     {result.improvements.map((tip, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-yellow-500 mt-0.5">•</span> {tip}
+                      <li key={i} className="text-xs text-foreground/80 flex items-start gap-2 leading-relaxed">
+                        <span className="w-4 h-4 rounded-full bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 flex items-center justify-center shrink-0 text-[10px] font-bold mt-0.5">
+                          {i + 1}
+                        </span>
+                        {tip}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
 
-              <Button onClick={handleReset} variant="outline" className="w-full">
+              <Button onClick={handleReset} variant="outline" className="w-full gap-2">
+                <Search className="w-3.5 h-3.5" />
                 Analyze Another JD
               </Button>
             </motion.div>
