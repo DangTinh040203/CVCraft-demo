@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, X, Download, Settings2, Eye, EyeOff, Sparkles, Target } from 'lucide-react';
+import { Plus, X, Download, Settings2, Eye, EyeOff, Sparkles, Target, MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { triggerHaptic } from '@/hooks/use-swipe';
 
@@ -10,6 +10,7 @@ interface MobileFABProps {
   onOpenCustomize: () => void;
   onOpenAI: () => void;
   onCheckMatch: () => void;
+  onMockInterview: () => void;
   showPreview: boolean;
 }
 
@@ -19,6 +20,7 @@ const MobileFAB = ({
   onOpenCustomize, 
   onOpenAI,
   onCheckMatch,
+  onMockInterview,
   showPreview 
 }: MobileFABProps) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -53,6 +55,12 @@ const MobileFAB = ({
       label: 'Check Match', 
       onClick: () => { triggerHaptic(10); onCheckMatch(); setIsOpen(false); },
       color: 'bg-rose-500 hover:bg-rose-600'
+    },
+    { 
+      icon: MessageSquare, 
+      label: 'Mock Interview', 
+      onClick: () => { triggerHaptic(10); onMockInterview(); setIsOpen(false); },
+      color: 'bg-indigo-500 hover:bg-indigo-600'
     },
   ];
 
