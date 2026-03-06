@@ -528,18 +528,24 @@ const Interview = () => {
 
                 {/* Setup Form */}
                 <motion.div variants={scaleIn}>
-                  <Card className="max-w-xl mx-auto mb-8 border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
+                  <Card className="max-w-2xl mx-auto mb-8 border-border/40 bg-card/90 backdrop-blur-md overflow-hidden shadow-xl relative">
+                    {/* Top gradient accent */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-accent to-primary" />
-                    <CardHeader>
-                      <CardTitle className="text-xl flex items-center gap-2">
-                        <Settings2 className="w-5 h-5 text-primary" />
+                    
+                    <CardHeader className="pb-2 pt-8 px-8">
+                      <CardTitle className="text-2xl flex items-center gap-3 font-display">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
+                          <Settings2 className="w-5 h-5 text-primary-foreground" />
+                        </div>
                         Interview Setup
                       </CardTitle>
+                      <p className="text-sm text-muted-foreground mt-1">Configure your mock interview session</p>
                     </CardHeader>
-                    <CardContent className="space-y-6">
+                    
+                    <CardContent className="space-y-7 px-8 pb-8 pt-4">
                       {/* Job Title */}
-                      <div className="space-y-2">
-                        <Label htmlFor="jobTitle" className="text-sm font-medium flex items-center gap-2">
+                      <div className="space-y-2.5">
+                        <Label htmlFor="jobTitle" className="text-sm font-semibold flex items-center gap-2">
                           <Briefcase className="w-4 h-4 text-primary" />
                           Job Title
                         </Label>
@@ -548,72 +554,106 @@ const Interview = () => {
                           placeholder="e.g. Software Engineer, Product Manager..."
                           value={settings.jobTitle}
                           onChange={(e) => setSettings(prev => ({ ...prev, jobTitle: e.target.value }))}
-                          className="bg-muted/50 border-border/50"
+                          className="bg-muted/40 border-border/50 h-12 text-base px-4 focus:ring-2 focus:ring-primary/20 transition-all"
                         />
                       </div>
 
+                      {/* Divider */}
+                      <div className="h-px bg-border/50" />
+
                       {/* Interview Type */}
                       <div className="space-y-3">
-                        <Label className="text-sm font-medium">Interview Type</Label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <Label className="text-sm font-semibold">Interview Type</Label>
+                        <div className="grid grid-cols-2 gap-4">
                           <motion.button
-                            whileHover={{ scale: 1.02 }}
+                            whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setSettings(prev => ({ ...prev, type: 'behavioral' }))}
                             className={cn(
-                              "p-4 rounded-xl border-2 transition-all duration-200 text-left",
+                              "relative p-5 rounded-2xl border-2 transition-all duration-300 text-left overflow-hidden group",
                               settings.type === 'behavioral'
-                                ? "border-primary bg-primary/10"
-                                : "border-border/50 bg-muted/30 hover:border-primary/50"
+                                ? "border-primary bg-primary/8 shadow-md shadow-primary/10"
+                                : "border-border/40 bg-muted/20 hover:border-primary/40 hover:bg-muted/40"
                             )}
                           >
-                            <Users2 className={cn(
-                              "w-6 h-6 mb-2",
-                              settings.type === 'behavioral' ? "text-primary" : "text-muted-foreground"
-                            )} />
-                            <h3 className="font-semibold">Behavioral</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Soft skills & teamwork</p>
+                            {settings.type === 'behavioral' && (
+                              <motion.div 
+                                layoutId="typeIndicator"
+                                className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />
+                              </motion.div>
+                            )}
+                            <div className={cn(
+                              "w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-colors",
+                              settings.type === 'behavioral' ? "bg-primary/15" : "bg-muted/60"
+                            )}>
+                              <Users2 className={cn(
+                                "w-5 h-5 transition-colors",
+                                settings.type === 'behavioral' ? "text-primary" : "text-muted-foreground"
+                              )} />
+                            </div>
+                            <h3 className="font-semibold text-sm">Behavioral</h3>
+                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Soft skills, teamwork & leadership</p>
                           </motion.button>
                           
                           <motion.button
-                            whileHover={{ scale: 1.02 }}
+                            whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
                             onClick={() => setSettings(prev => ({ ...prev, type: 'technical' }))}
                             className={cn(
-                              "p-4 rounded-xl border-2 transition-all duration-200 text-left",
+                              "relative p-5 rounded-2xl border-2 transition-all duration-300 text-left overflow-hidden group",
                               settings.type === 'technical'
-                                ? "border-primary bg-primary/10"
-                                : "border-border/50 bg-muted/30 hover:border-primary/50"
+                                ? "border-primary bg-primary/8 shadow-md shadow-primary/10"
+                                : "border-border/40 bg-muted/20 hover:border-primary/40 hover:bg-muted/40"
                             )}
                           >
-                            <Code className={cn(
-                              "w-6 h-6 mb-2",
-                              settings.type === 'technical' ? "text-primary" : "text-muted-foreground"
-                            )} />
-                            <h3 className="font-semibold">Technical</h3>
-                            <p className="text-xs text-muted-foreground mt-1">Skills & problem solving</p>
+                            {settings.type === 'technical' && (
+                              <motion.div 
+                                layoutId="typeIndicator"
+                                className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5 text-primary-foreground" />
+                              </motion.div>
+                            )}
+                            <div className={cn(
+                              "w-11 h-11 rounded-xl flex items-center justify-center mb-3 transition-colors",
+                              settings.type === 'technical' ? "bg-primary/15" : "bg-muted/60"
+                            )}>
+                              <Code className={cn(
+                                "w-5 h-5 transition-colors",
+                                settings.type === 'technical' ? "text-primary" : "text-muted-foreground"
+                              )} />
+                            </div>
+                            <h3 className="font-semibold text-sm">Technical</h3>
+                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">Skills & problem solving</p>
                           </motion.button>
                         </div>
                       </div>
 
                       {/* Question Count */}
                       <div className="space-y-3">
-                        <Label className="text-sm font-medium flex items-center gap-2">
-                          <MessageSquare className="w-4 h-4 text-primary" />
-                          Number of Questions
-                        </Label>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-semibold flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4 text-primary" />
+                            Number of Questions
+                          </Label>
+                          <span className="text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                            {settings.questionCount} questions
+                          </span>
+                        </div>
                         <div className="flex gap-2">
                           {questionCounts.map((count) => (
                             <motion.button
                               key={count}
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
+                              whileHover={{ scale: 1.08 }}
+                              whileTap={{ scale: 0.92 }}
                               onClick={() => setSettings(prev => ({ ...prev, questionCount: count }))}
                               className={cn(
-                                "flex-1 py-3 rounded-lg border-2 font-semibold transition-all duration-200",
+                                "flex-1 py-3.5 rounded-xl border-2 font-bold text-sm transition-all duration-300",
                                 settings.questionCount === count
-                                  ? "border-primary bg-primary/10 text-primary"
-                                  : "border-border/50 bg-muted/30 text-muted-foreground hover:border-primary/50"
+                                  ? "border-primary bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                                  : "border-border/40 bg-muted/20 text-muted-foreground hover:border-primary/40 hover:bg-muted/40"
                               )}
                             >
                               {count}
@@ -623,14 +663,14 @@ const Interview = () => {
                       </div>
 
                       {/* Feedback Toggle */}
-                      <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+                      <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-muted/40 to-muted/20 border border-border/40">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                             <Brain className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <Label htmlFor="feedback" className="font-medium cursor-pointer">AI Feedback</Label>
-                            <p className="text-xs text-muted-foreground">Get feedback after each answer</p>
+                            <Label htmlFor="feedback" className="font-semibold text-sm cursor-pointer">AI Feedback</Label>
+                            <p className="text-xs text-muted-foreground mt-0.5">Get instant feedback after each answer</p>
                           </div>
                         </div>
                         <Switch
@@ -639,28 +679,31 @@ const Interview = () => {
                           onCheckedChange={(checked) => setSettings(prev => ({ ...prev, enableFeedback: checked }))}
                         />
                       </div>
+
+                      {/* Divider */}
+                      <div className="h-px bg-border/50" />
+
+                      {/* CTA Button inside card */}
+                      <div className="pt-1">
+                        <Button 
+                          variant="gradient" 
+                          size="lg" 
+                          onClick={startInterview}
+                          disabled={!settings.jobTitle.trim()}
+                          className="w-full h-13 text-base font-semibold group relative overflow-hidden shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 rounded-xl"
+                        >
+                          <span className="relative z-10 flex items-center gap-2.5">
+                            <Mic className="w-5 h-5" />
+                            Start Interview
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </span>
+                        </Button>
+                        {!settings.jobTitle.trim() && (
+                          <p className="text-xs text-muted-foreground mt-3 text-center">Enter a job title to get started</p>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
-                </motion.div>
-
-                {/* CTA Button */}
-                <motion.div variants={fadeInUp}>
-                  <Button 
-                    variant="gradient" 
-                    size="xl" 
-                    onClick={startInterview}
-                    disabled={!settings.jobTitle.trim()}
-                    className="group relative overflow-hidden shadow-xl shadow-primary/25 hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <Mic className="w-5 h-5" />
-                      Start Interview
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  </Button>
-                  {!settings.jobTitle.trim() && (
-                    <p className="text-sm text-muted-foreground mt-3">Please enter a job title to continue</p>
-                  )}
                 </motion.div>
               </motion.div>
             )}
