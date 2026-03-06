@@ -1000,106 +1000,250 @@ const Interview = () => {
             )}
 
             {/* Complete Screen */}
-            {state === 'complete' && (
-              <motion.div
-                key="complete"
-                initial="hidden"
-                animate="visible"
-                exit={{ opacity: 0 }}
-                variants={staggerContainer}
-                className="text-center"
-              >
+            {state === 'complete' && (() => {
+              const totalTime = feedbacks.reduce((acc, f) => acc + f.recordingTime, 0);
+              const avgTime = feedbacks.length > 0 ? totalTime / feedbacks.length : 0;
+              // Simple score based on avg recording time (longer = better, max 120s = 100%)
+              const overallScore = Math.min(100, Math.round((avgTime / 120) * 100));
+              const scoreColor = overallScore >= 70 ? 'text-emerald-500' : overallScore >= 40 ? 'text-amber-500' : 'text-rose-500';
+              const scoreRingColor = overallScore >= 70 ? '#10b981' : overallScore >= 40 ? '#f59e0b' : '#ef4444';
+              const scoreLabel = overallScore >= 70 ? 'Great Performance' : overallScore >= 40 ? 'Needs Improvement' : 'Needs Work';
+              const scoreBadgeColor = overallScore >= 70 ? 'bg-emerald-500/10 text-emerald-500' : overallScore >= 40 ? 'bg-amber-500/10 text-amber-500' : 'bg-rose-500/10 text-rose-500';
+              const circumference = 2 * Math.PI * 54;
+              const strokeDashoffset = circumference - (overallScore / 100) * circumference;
+
+              return (
                 <motion.div
-                  className="relative w-28 h-28 mx-auto mb-8"
-                  variants={scaleIn}
+                  key="complete"
+                  initial="hidden"
+                  animate="visible"
+                  exit={{ opacity: 0 }}
+                  variants={staggerContainer}
+                  className="max-w-3xl mx-auto"
                 >
+                  {/* Hero Score Section */}
+                  <motion.div variants={fadeInUp} className="text-center mb-10">
+                    <Card className="relative overflow-hidden border-border/40 bg-card/90 backdrop-blur-md shadow-xl">
+                      <div className="h-1 bg-gradient-to-r from-primary via-accent to-primary" />
+                      <CardContent className="pt-10 pb-8 px-8">
+                        {/* Score Ring */}
+                        <motion.div 
+                          className="relative w-40 h-40 mx-auto mb-6"
+                          initial={{ scale: 0, rotate: -90 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: "spring", stiffness: 150, delay: 0.2 }}
+                        >
+                          <svg className="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                            <circle cx="60" cy="60" r="54" fill="none" strokeWidth="8" className="stroke-muted/30" />
+                            <motion.circle 
+                              cx="60" cy="60" r="54" fill="none" strokeWidth="8"
+                              stroke={scoreRingColor}
+                              strokeLinecap="round"
+                              strokeDasharray={circumference}
+                              initial={{ strokeDashoffset: circumference }}
+                              animate={{ strokeDashoffset }}
+                              transition={{ duration: 1.5, delay: 0.5, ease: "easeOut" }}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <motion.span 
+                              className={cn("text-4xl font-display font-bold", scoreColor)}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 1 }}
+                            >
+                              {overallScore}%
+                            </motion.span>
+                          </div>
+                        </motion.div>
+
+                        <motion.span 
+                          className={cn("inline-block text-xs font-bold px-3 py-1 rounded-full mb-3", scoreBadgeColor)}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 1.2 }}
+                        >
+                          {overallScore >= 70 ? '🔥' : overallScore >= 40 ? '⚡' : '📈'} {scoreLabel}
+                        </motion.span>
+
+                        <motion.h2 
+                          className="font-display text-2xl font-bold mb-2"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.8 }}
+                        >
+                          Interview Complete!
+                        </motion.h2>
+                        <motion.p 
+                          className="text-sm text-muted-foreground max-w-md mx-auto"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.9 }}
+                        >
+                          You completed {feedbacks.length}/{questions.length} questions for <strong>{settings.jobTitle}</strong> in {formatTime(totalTime)}.
+                        </motion.p>
+
+                        {/* Stats Row */}
+                        <motion.div 
+                          className="grid grid-cols-3 gap-3 mt-8"
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 1 }}
+                        >
+                          {[
+                            { icon: CheckCircle2, label: 'Completed', value: `${feedbacks.length}/${questions.length}`, color: 'text-emerald-500' },
+                            { icon: Clock, label: 'Total Time', value: formatTime(totalTime), color: 'text-amber-500' },
+                            { icon: Zap, label: 'Avg/Question', value: formatTime(Math.round(avgTime)), color: 'text-primary' },
+                          ].map((stat, i) => (
+                            <div key={stat.label} className="p-3 rounded-xl bg-muted/30 border border-border/30">
+                              <stat.icon className={cn("w-5 h-5 mx-auto mb-1.5", stat.color)} />
+                              <div className={cn("text-lg font-bold font-display", stat.color)}>{stat.value}</div>
+                              <div className="text-[11px] text-muted-foreground">{stat.label}</div>
+                            </div>
+                          ))}
+                        </motion.div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  {/* Score Breakdown */}
+                  <motion.div variants={scaleIn} className="mb-8">
+                    <Card className="border-border/40 bg-card/90 backdrop-blur-sm overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Sparkles className="w-4 h-4 text-primary" />
+                          Score Breakdown
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {feedbacks.map((fb, i) => {
+                          const qScore = Math.min(100, Math.round((fb.recordingTime / 120) * 100));
+                          const qColor = qScore >= 70 ? 'text-emerald-500' : qScore >= 40 ? 'text-amber-500' : 'text-rose-500';
+                          const qBg = qScore >= 70 ? 'bg-emerald-500' : qScore >= 40 ? 'bg-amber-500' : 'bg-rose-500';
+                          return (
+                            <motion.div 
+                              key={fb.questionId}
+                              className="p-4 rounded-xl bg-muted/20 border border-border/30"
+                              initial={{ opacity: 0, y: 15 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.3 + i * 0.1 }}
+                            >
+                              <div className="flex items-start justify-between gap-4 mb-3">
+                                <div className="flex-1">
+                                  <span className="text-xs font-semibold text-primary">Q{i + 1}</span>
+                                  <p className="text-sm font-medium mt-0.5 leading-relaxed">{fb.question}</p>
+                                </div>
+                                <span className={cn("text-sm font-bold tabular-nums", qColor)}>{qScore}%</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                                <motion.div 
+                                  className={cn("h-full rounded-full", qBg)}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${qScore}%` }}
+                                  transition={{ duration: 0.8, delay: 0.5 + i * 0.1 }}
+                                />
+                              </div>
+                              <div className="mt-3 space-y-2">
+                                <p className="text-xs text-emerald-500 flex items-start gap-1.5">
+                                  <TrendingUp className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                  {fb.strengths}
+                                </p>
+                                <p className="text-xs text-amber-500 flex items-start gap-1.5">
+                                  <Target className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                                  {fb.improvements}
+                                </p>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  {/* Strengths & Improvements Side by Side */}
+                  <motion.div variants={fadeInUp} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                    {/* Strengths */}
+                    <Card className="border-emerald-500/20 bg-emerald-500/5 overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2 text-emerald-500">
+                          <CheckCircle2 className="w-4 h-4" />
+                          STRENGTHS
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2.5">
+                          {feedbacks.map((fb, i) => (
+                            <motion.li 
+                              key={i}
+                              className="text-xs text-muted-foreground flex items-start gap-2"
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.5 + i * 0.08 }}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                              {fb.strengths}
+                            </motion.li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+
+                    {/* Areas for Improvement */}
+                    <Card className="border-rose-500/20 bg-rose-500/5 overflow-hidden">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2 text-rose-500">
+                          <Target className="w-4 h-4" />
+                          AREAS FOR IMPROVEMENT
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2.5">
+                          {feedbacks.map((fb, i) => (
+                            <motion.li 
+                              key={i}
+                              className="text-xs text-muted-foreground flex items-start gap-2"
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.5 + i * 0.08 }}
+                            >
+                              <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-500 flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5">
+                                {i + 1}
+                              </span>
+                              {fb.improvements}
+                            </motion.li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+
+                  {/* Action Buttons */}
                   <motion.div 
-                    className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-400 to-amber-600"
-                    animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                  />
-                  <div className="relative w-full h-full rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-2xl shadow-amber-500/40">
-                    <Trophy className="w-14 h-14 text-white" />
-                  </div>
-                  <motion.div
-                    className="absolute -top-2 -right-2"
-                    animate={{ rotate: [0, 20, -20, 0], scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+                    variants={fadeInUp}
+                    className="flex flex-col sm:flex-row justify-center gap-3"
                   >
-                    <Star className="w-10 h-10 text-primary fill-primary" />
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      onClick={restartInterview}
+                      className="group rounded-xl"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
+                      Interview Again
+                    </Button>
+                    <Button 
+                      variant="gradient" 
+                      size="lg"
+                      onClick={downloadPDF}
+                      className="shadow-xl shadow-primary/25 rounded-xl"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Report (PDF)
+                    </Button>
                   </motion.div>
                 </motion.div>
-
-                <motion.div variants={fadeInUp}>
-                  <h1 className="font-display text-5xl font-bold mb-4">
-                    Interview <span className="gradient-text">Complete!</span>
-                  </h1>
-                  <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">
-                    Congratulations! You've completed all {questions.length} questions for <strong>{settings.jobTitle}</strong>.
-                  </p>
-                </motion.div>
-
-                <motion.div variants={scaleIn}>
-                  <Card className="max-w-lg mx-auto mb-10 border-border/50 bg-card/80 backdrop-blur-sm overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-primary to-amber-400" />
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-center gap-2">
-                        <Trophy className="w-5 h-5 text-amber-400" />
-                        Performance Summary
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {[
-                        { label: 'Position', value: settings.jobTitle, color: 'text-primary', icon: Briefcase },
-                        { label: 'Interview Type', value: settings.type === 'behavioral' ? 'Behavioral' : 'Technical', color: 'text-primary', icon: settings.type === 'behavioral' ? Users2 : Code },
-                        { label: 'Questions Completed', value: `${feedbacks.length}/${questions.length}`, color: 'text-emerald-400', icon: CheckCircle2 },
-                        { label: 'Total Time', value: formatTime(feedbacks.reduce((acc, f) => acc + f.recordingTime, 0)), color: 'text-amber-400', icon: Clock },
-                      ].map((item, i) => (
-                        <motion.div 
-                          key={item.label}
-                          className="flex justify-between items-center p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 + i * 0.1 }}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <item.icon className="w-4 h-4 text-primary" />
-                            </div>
-                            <span className="text-muted-foreground">{item.label}</span>
-                          </div>
-                          <span className={cn("font-semibold", item.color)}>{item.value}</span>
-                        </motion.div>
-                      ))}
-                    </CardContent>
-                  </Card>
-                </motion.div>
-
-                <motion.div 
-                  variants={fadeInUp}
-                  className="flex justify-center gap-4 flex-wrap"
-                >
-                  <Button 
-                    variant="outline" 
-                    size="lg" 
-                    onClick={restartInterview}
-                    className="group"
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2 group-hover:rotate-180 transition-transform duration-500" />
-                    Practice Again
-                  </Button>
-                  <Button 
-                    variant="gradient" 
-                    size="lg"
-                    onClick={downloadPDF}
-                    className="shadow-xl shadow-primary/25"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download Report (PDF)
-                  </Button>
-                </motion.div>
-              </motion.div>
-            )}
+              );
+            })()}
           </AnimatePresence>
         </div>
       </main>
