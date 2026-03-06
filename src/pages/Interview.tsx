@@ -683,8 +683,8 @@ const Interview = () => {
                       {/* Divider */}
                       <div className="h-px bg-border/50" />
 
-                      {/* CTA Button inside card */}
-                      <div className="pt-1">
+                      {/* CTA Buttons */}
+                      <div className="pt-1 space-y-3">
                         <Button 
                           variant="gradient" 
                           size="lg" 
@@ -698,8 +698,29 @@ const Interview = () => {
                             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                           </span>
                         </Button>
+                        <Button 
+                          variant="outline" 
+                          size="lg" 
+                          onClick={() => {
+                            // Generate demo data
+                            const demoQuestions = [...behavioralQuestions].slice(0, 5);
+                            setQuestions(demoQuestions);
+                            setFeedbacks(demoQuestions.map(q => ({
+                              questionId: q.id,
+                              question: q.question,
+                              recordingTime: Math.floor(Math.random() * 60) + 30,
+                              strengths: 'Clear communication, well-structured response, and confident delivery.',
+                              improvements: 'Consider adding more specific metrics and quantifiable achievements.',
+                            })));
+                            setState('complete');
+                          }}
+                          className="w-full h-11 text-sm font-medium rounded-xl border-border/50 hover:bg-muted/50 gap-2"
+                        >
+                          <Trophy className="w-4 h-4 text-primary" />
+                          Preview Demo Result
+                        </Button>
                         {!settings.jobTitle.trim() && (
-                          <p className="text-xs text-muted-foreground mt-3 text-center">Enter a job title to get started</p>
+                          <p className="text-xs text-muted-foreground mt-1 text-center">Enter a job title to get started</p>
                         )}
                       </div>
                     </CardContent>
